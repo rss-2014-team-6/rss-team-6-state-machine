@@ -1,0 +1,16 @@
+<launch>
+  <include file="$(find rosjava_pkg)/lab4/launch/config.gurtej.launch" />
+  
+  <node name="rep" pkg="topic_tools" type="relay" args="/camera/image_raw /rss/video" machine="gurtej"/>
+
+  <node name="view" pkg="image_view" type="image_view" args="image:=/rss/video" machine="gurtej" />
+  <node name="gui" pkg="rosjava_pkg" type="lab4-execute" args="VisualServo.VisualServo" machine="gurtej" output="screen" />
+  <node name="mtn" pkg="rosjava_pkg" type="motion-execute" args="motion.Listener" machine="gurtej" />
+
+  <!--<node name="lis" pkg="rosjava_bootstrap" type="run.py" args="uorc_listener Listener" machine="netbook" /> -->
+  <node name="pub" pkg="rosjava_pkg" type="sensing-execute" args="Publisher" machine="gurtej" />
+  <node name="odo" pkg="rosjava_pkg" type="odometry-execute" args="odometry.Odometry" machine="gurtej" />
+  <node name="vid" pkg="gscam" type="gscam" machine="gurtej">
+    <param name="gscam_config" value="v4l2src device=/dev/video1 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
+  </node>
+</launch>
