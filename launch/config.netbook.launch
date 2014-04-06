@@ -1,0 +1,3 @@
+<launch>
+  <machine name="gurtej" address="localhost" user="rss-student" password="RedSolidSquid6!" />
+</launch>
