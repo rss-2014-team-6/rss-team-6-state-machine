@@ -5,7 +5,7 @@ package StateMachine;
 
 import org.ros.message.MessageListener;
 import rss_msgs.PositionMsg;
-import rss_msgs.WaypointMsg;
+import rss_msgs.PositionTargetMsg;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
@@ -15,7 +15,7 @@ import org.ros.node.topic.Subscriber;
 
 /**
  * 
- * @author bhomberg
+ * @author cwetters
  * 
  */
 public class StateMachine extends AbstractNodeMain implements Runnable {
@@ -26,9 +26,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
     public Subscriber<PositionMsg> posSub;
     
-    public Publisher<WaypointMsg> waypointPub;
+    public Publisher<PositionTargetMsg> posTargMsgPub;
     
-    private WaypointMsg currGoal;
+    private PositionTargetMsg currGoal;
     
     private final double ACCEPTABLE_ERROR = 0.05;
 
@@ -44,10 +44,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
     public void handle(PositionMsg odo){
         if(dist(odo) < ACCEPTABLE_ERROR){
-            WaypointMsg msg = waypointPub.newMessage();
-            msg.setX() = Math.random()*5.0;
-            msg.setY() = Math.random()*5.0;
-            waypointPub.publish(msg);
+            PositionTargetMsg msg = posTargMsgPub.newMessage();
+            msg.setX(Math.random()*5.0);
+            msg.setY(Math.random()*5.0);
+            posTargMsgPub.publish(msg);
             currGoal = msg;
         }
     }
@@ -77,6 +77,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     public void onStart(final ConnectedNode node) {
 	System.out.println("Hi, I'm a state machine!");
 	
+	posTargMsgPub = node.newPublisher("/command/Goal", "rss_msgs/PositionTargetMsg");
+
         posSub = node.newSubscriber("/loc/position", "rss_msgs/PositionMsg");
         posSub.addMessageListener(new MessageListener<rss_msgs.PositionMsg>() {
             @Override
