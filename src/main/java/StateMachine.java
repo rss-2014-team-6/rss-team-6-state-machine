@@ -133,7 +133,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     
         waypointSub = node.newSubscriber("/path/Waypoint", "rss_msgs/WaypointMsg");
-        waypointSub.addMessageListener(new MessageListener<rss_msgs.WaypointMsg()>{
+        waypointSub.addMessageListener(new MessageListener<rss_msgs.WaypointMsg>(){
             @Override
             public void onNewMessage(rss_msgs.WaypointMsg message){
                 handle(message);
