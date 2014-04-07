@@ -41,6 +41,27 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private final double ACCEPTABLE_ERROR = 0.05;
     
+    private final int ERROR = -1;
+    //overall time sections
+    private final int GATHER = 1;
+    private final int HOMEWARD = 2;
+    private final int CONSTRUCT = 3;
+    //gather states
+    private final int LOST = 10;
+    private final int VISUAL_SERVO = 11;
+    private final int FIND_BLOCK = 12; //spin on state diagram pic
+    private final int DRIVE_NEW_LOC = 13;
+    //drive to build site states
+    private final int DLOST = 20;
+    private final int DRIVE_BUILD_SITE = 21;
+    //build states
+    private final int BLOST = 30;
+    private final int BUILD1 = 31;
+    private final int BUILD2 = 32;
+    private final int BUILD3 = 33;
+    private final int DRIVE_BUILD = 34; //drive to next place to build a tower
+    
+    
    
 
     /**
