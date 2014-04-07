@@ -27,8 +27,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
     public Subscriber<PositionMsg> posSub;
     public Subscriber<WaypointMsg> waypointSub;
+    public Subscriber<BumpMsg> bumpSub;
+    public Subscriber<BreakBeamMsg> breakbeamSub;
+    public Subscriber<SonarMsg> sonarSub;
     
     public Publisher<PositionTargetMsg> posTargMsgPub;
+    public Publisher<std_msgs.String> ctrlStatePub;
     
     
     //Probably should be changed to Waypoint..
@@ -40,6 +44,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private WaypointMsg currWaypoint;
     
     private final double ACCEPTABLE_ERROR = 0.05;
+    
+    private int age;
+    private int state;
     
     private final int ERROR = -1;
     //overall time sections
@@ -130,6 +137,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	System.out.println("Hi, I'm a state machine!");
 	
 	posTargMsgPub = node.newPublisher("/state/PositionTarget", "rss_msgs/PositionTargetMsg");
+	ctrlStatePub = node.newPublisher("/state/State", std_msgs.String._TYPE);
 	
 	//yay hacks to see if things work
 	motorsPub = node.newPublisher("command/Motors", "rss_msgs/PositionTargetMsg");
@@ -161,7 +169,40 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                 System.out.println("State Machine got a waypoint");
         }
         });
+        
+        
+        bumpSub = node.newSubscriber("/sense/Bump", "rss_msgs/BumpMsg");
+        bumpSub.addMessageListener(new MessageListener<rss_msgs.BumpMsg>(){
+            @Override
+            public void onNewMessage(rss_msgs.BumpMsg message){
+                handle(message);
+                System.out.println("State Machine got a bump");
+                
+            }
+        });
+        
+        breakbeamSub = node.newSubscriber("/sense/BreakBeam", "rss_msgs/BreakBeamMsg");
+        breakbeamSub.addMessageListener(new MessageListener<rss_msgs.BreakBeamMsg>() {
+            @Override
+            public void onNewMessage(rss_msgs.BreakBeamMsg message){
+                handle(message);
+                System.out.println("State Machine got a broken beam");
+            }
+        });
+        
+        sonarSub = node.newSubscriber("/sense/Sonar", "rss_msgs/SonarMsg");
+        sonarSub.addMessageListener(new MessageListener<rss_msgs.SonarMsg>(){
+            @Override
+            public void onNewMessage(rss_msgs.SonarMsg message){
+                handle(message);
+                System.out.println("State Machine got a sonar (or a few)");
+            }
+        });
+        
+        
     }
+    
+        
 
     @Override
     public GraphName getDefaultNodeName() {
