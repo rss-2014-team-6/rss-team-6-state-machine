@@ -116,7 +116,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         msg.setY(way.getY());
         msg.setTheta(way.getTheta());
         motorsPub.publish(msg);
-        **/
+	*/
         //end hacks
     }
     
@@ -177,9 +177,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	rand = new Random();
 
 	//yay hacks to see if things work
-	/**
+	
 	motorsPub = node.newPublisher("command/Motors", "rss_msgs/PositionTargetMsg");
-	*/
+	
 	//end hacks
 
         posSub = node.newSubscriber("/loc/Position", "rss_msgs/PositionMsg");
