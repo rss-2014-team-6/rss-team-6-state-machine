@@ -16,6 +16,8 @@ import org.ros.node.ConnectedNode;
 import org.ros.node.Node;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
+import java.util.Random;
+import java.lang.InterruptedException;
 
 /**
  * 
@@ -29,7 +31,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     protected boolean firstUpdate = true;
 
     public Subscriber<PositionMsg> posSub;
-    public Subscriber<WaypointMsg> waypointSub;
+    //public Subscriber<WaypointMsg> waypointSub;
     public Subscriber<BumpMsg> bumpSub;
     public Subscriber<BreakBeamMsg> breakbeamSub;
     public Subscriber<SonarMsg> sonarSub;
@@ -40,6 +42,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     //Probably should be changed to Waypoint..
     public Publisher<PositionTargetMsg> motorsPub;
+
+    //temporarily output waypoints so we can see if the motors move --bhomberg
+    public Publisher<WaypointMsg> waypointPub;
     //end hacky
     
     
@@ -71,6 +76,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private final int BUILD3 = 33;
     private final int DRIVE_BUILD = 34; //drive to next place to build a tower
     
+    private Random rand; // for testing --bhomberg
     
    
 
@@ -135,6 +141,18 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	    System.out.println("In SM run loop");
 	    //this used to do visiony things, idk what it's supposed to do now. 
 	    
+	    // testing -- output new random waypoints every 2 seconds --bhomberg
+	    try{
+		Thread.sleep(2000);
+	    } catch (InterruptedException e) {
+		System.out.println("Thread sleeping is sadface. :( ");
+	    }
+
+	    WaypointMsg msg = waypointPub.newMessage();
+	    msg.setX(rand.nextDouble()*10);
+	    msg.setY(rand.nextDouble()*10);
+	    msg.setTheta(-1);
+	    waypointPub.publish(msg);
 	}
     }
 
@@ -152,7 +170,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	
 	posTargMsgPub = node.newPublisher("/state/PositionTarget", "rss_msgs/PositionTargetMsg");
 	ctrlStatePub = node.newPublisher("/state/State", std_msgs.String._TYPE);
-	
+	waypointPub = node.newPublisher("/path/Waypoint", "rss_msgs/WaypointMsg");
+	rand = new Random();
+
 	//yay hacks to see if things work
 	/**
 	motorsPub = node.newPublisher("command/Motors", "rss_msgs/PositionTargetMsg");
@@ -177,14 +197,14 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     
     
-        waypointSub = node.newSubscriber("/path/Waypoint", "rss_msgs/WaypointMsg");
+        /*waypointSub = node.newSubscriber("/path/Waypoint", "rss_msgs/WaypointMsg");
         waypointSub.addMessageListener(new MessageListener<rss_msgs.WaypointMsg>(){
             @Override
             public void onNewMessage(rss_msgs.WaypointMsg message){
                 handle(message);
                 System.out.println("State Machine got a waypoint");
         }
-        });
+        });*/
         
         
         bumpSub = node.newSubscriber("/sense/Bump", "rss_msgs/BumpMsg");
