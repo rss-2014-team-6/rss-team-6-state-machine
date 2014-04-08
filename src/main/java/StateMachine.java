@@ -122,6 +122,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     public void handle(BumpMsg bump){
         System.out.println("bump message handled");
+	WaypointMsg msg = waypointPub.newMessage();
+	msg.setX(rand.nextDouble()*10);
+	msg.setY(rand.nextDouble()*10);
+	msg.setTheta(-1);
+	waypointPub.publish(msg);
     }
     public void handle(BreakBeamMsg bbeam){
         System.out.println("bbeam handled");
@@ -178,7 +183,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
 	//yay hacks to see if things work
 	
-	motorsPub = node.newPublisher("command/Motors", "rss_msgs/PositionTargetMsg");
+	//	motorsPub = node.newPublisher("command/Motors", "rss_msgs/PositionTargetMsg");
 	
 	//end hacks
 
