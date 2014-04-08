@@ -109,6 +109,15 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         //end hacks
     }
     
+    public void handle(BumpMsg bump){
+        System.out.println("bump message handled");
+    }
+    public void handle(BreakBeamMsg bbeam){
+        System.out.println("bbeam handled");
+    }
+    public void handle(SonarMsg sonar){
+        System.out.println("sonar handled");
+    }
     public double dist(PositionMsg odo){
         return Math.sqrt(Math.pow(odo.getX() - currGoal.getX(), 2) + 
                             Math.pow(odo.getY() - currGoal.getY(), 2));
