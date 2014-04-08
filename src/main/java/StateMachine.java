@@ -130,6 +130,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         System.out.println("sonar handled");
     }
     public double dist(PositionMsg odo){
+	// not sure how you want to deal with this more nicely, this is hackish --bhomberg
+	if(currGoal == null)
+	    return -1;
         return Math.sqrt(Math.pow(odo.getX() - currGoal.getX(), 2) + 
                             Math.pow(odo.getY() - currGoal.getY(), 2));
         
