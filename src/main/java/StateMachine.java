@@ -104,11 +104,13 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                                                         "  y: " + way.getY() +
                                                         "  theta: " + way.getTheta());
         //send waypoint since motion isn't updated yet and I don't know what it's going to be
+        /**
         PositionTargetMsg msg = motorsPub.newMessage();
         msg.setX(way.getX());
         msg.setY(way.getY());
         msg.setTheta(way.getTheta());
         motorsPub.publish(msg);
+        **/
         //end hacks
     }
     
@@ -152,10 +154,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	ctrlStatePub = node.newPublisher("/state/State", std_msgs.String._TYPE);
 	
 	//yay hacks to see if things work
+	/**
 	motorsPub = node.newPublisher("command/Motors", "rss_msgs/PositionTargetMsg");
+	*/
 	//end hacks
 
-        posSub = node.newSubscriber("/loc/position", "rss_msgs/PositionMsg");
+        posSub = node.newSubscriber("/loc/Position", "rss_msgs/PositionMsg");
         posSub.addMessageListener(new MessageListener<rss_msgs.PositionMsg>() {
             @Override
 	    public void onNewMessage(rss_msgs.PositionMsg message) {
