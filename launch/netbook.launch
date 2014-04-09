@@ -10,7 +10,7 @@
   <node name="odo" pkg="rosjava_pkg" type="odometry-execute" args="odometry.Odometry" machine="eeepc2" />
   <node name="path" pkg="rosjava_pkg" type="path_planning-execute" args="path_planning.PlannerNode" machine="eeepc2" />
   <node name="loc" pkg="rosjava_pkg" type="localization-execute" args="localization.Localization" machine="eeepc2">
-    <param name="/mapFileName" value="($find rosjava_pkg)/maps/global-nav-maze-2011-basic.map" />
+    <param name="/mapFileName" value="$(find rosjava_pkg)/maps/global-nav-maze-2011-basic.map" />
   </node>
   <node name="vid" pkg="gscam" type="gscam" machine="eeepc2">
     <param name="gscam_config" value="v4l2src device=/dev/video0 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
