@@ -126,7 +126,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	
 	
 
-	/*
+       
 	count++;
 
 	if(count >= 2000){
@@ -138,7 +138,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	    count = 0;
 	}
 	
-	*/
+	
     }
     public void handle(BreakBeamMsg bbeam){
         System.out.println("bbeam handled");
@@ -157,7 +157,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
     @Override
     public void run() {
-        while (true) {
+        /*while (true) {
 	    System.out.println("In SM run loop");
 	    //this used to do visiony things, idk what it's supposed to do now. 
 	    
@@ -173,7 +173,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	    msg.setY(rand.nextDouble()*10);
 	    msg.setTheta(-1);
 	    waypointPub.publish(msg);
-	}
+	    }*/
     }
 
     /**
