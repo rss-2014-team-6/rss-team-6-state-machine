@@ -78,6 +78,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private Random rand; // for testing --bhomberg
     
+    private int count;
    
 
     /**
@@ -122,11 +123,22 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     public void handle(BumpMsg bump){
         System.out.println("bump message handled");
-	WaypointMsg msg = waypointPub.newMessage();
-	msg.setX(rand.nextDouble()*10);
-	msg.setY(rand.nextDouble()*10);
-	msg.setTheta(-1);
-	waypointPub.publish(msg);
+	
+	
+
+	/*
+	count++;
+
+	if(count >= 2000){
+	    WaypointMsg msg = waypointPub.newMessage();
+	    msg.setX(rand.nextDouble()*10);
+	    msg.setY(rand.nextDouble()*10);
+	    msg.setTheta(-1);
+	    waypointPub.publish(msg);
+	    count = 0;
+	}
+	
+	*/
     }
     public void handle(BreakBeamMsg bbeam){
         System.out.println("bbeam handled");
@@ -243,7 +255,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
             }
         });
         
-        
+        count = 0; // for testing --bhomberg
     }
     
         
