@@ -11,58 +11,52 @@ import rss_msgs.OdometryMsg;
 
 public class State {
 
-private String name
+    private String name;
 
-public State (String name){
+    public State (String name){
 	this.name = name;
 
-}
+    }
 
 
-public void handle (BumpMsg msg){
+    public void handle (BumpMsg msg){
 
 	System.out.println("Node " + name + " handled bump msg");
-}
+    }
 
 
-public void handle (SonarMsg msg){
+    public void handle (SonarMsg msg){
 
 	System.out.println("Node " + name + " handled sonar msg");
-}
+    }
 
 
 
-public void handle (PositionMsg msg){
+    public void handle (PositionMsg msg){
 
 	System.out.println("Node " + name + " handled pose msg");
-}
+    }
 
 
-public void handle (WaypointMsg msg){
+    public void handle (WaypointMsg msg){
 
 	System.out.println("Node " + name + " handled waypoint msg");
-}
+    }
 
 
-public void handle (OdometryMsg msg){
+    public void handle (OdometryMsg msg){
 
 	System.out.println("Node " + name + " handled odo msg");
-}
+    }
 
 
-public void handle (BreakBeamMsg msg){
+    public void handle (BreakBeamMsg msg){
 
 	System.out.println("Node " + name + " handled breakbeam msg");
-}
+    }
 
-public void handle (PositionTargetMsg msg){
+    public void handle (PositionTargetMsg msg){
 
 	System.out.println("Node " + name + " handled postarg msg");
-}
-
-
-
-
-
-
+    }
 }

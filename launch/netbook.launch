@@ -4,7 +4,8 @@
   <node name="rep" pkg="topic_tools" type="relay" args="/camera/image_raw /rss/video" machine="eeepc2"/>
 
   <node name="view" pkg="image_view" type="image_view" args="image:=/rss/video" machine="eeepc2" />
-  <node name="gui" pkg="rosjava_pkg" type="state_machine-execute" args="StateMachine.StateMachine" machine="eeepc2" output="screen" />
+  <node name="gui" pkg="rosjava_pkg" type="state_machine-execute" args="StateMachine.HighGUI" machine="eeepc2" output="screen" />
+  <node name="high" pkg="rosjava_pkg" type="state_machine-execute" args="StateMachine.StateMachine" machine="eeepc2" output="screen" />
   <node name="mtn" pkg="rosjava_pkg" type="motion-execute" args="motion.Listener" machine="eeepc2" output="screen"/>
   <node name="sense" pkg="rosjava_pkg" type="sensing-execute" args="Publisher" machine="eeepc2" />
   <node name="odo" pkg="rosjava_pkg" type="odometry-execute" args="odometry.Odometry" machine="eeepc2" />

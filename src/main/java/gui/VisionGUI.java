@@ -1,4 +1,4 @@
-package StateMachine;
+package gui;
 
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
@@ -597,8 +597,16 @@ public class VisionGUI extends JPanel implements NodeMain {
      **/
     public static final double UN_FORCE_FAST_RENDER_THRESHOLD = 5.0;
 
+    /**
+     * <p>
+     * Track the first pose update to properly reset the world view.
+     * </p>
+     **/
+    protected boolean firstPoseUpdate = true;
+
     public Subscriber<OdometryMsg> odoSub;
     public Subscriber<sensor_msgs.Image> vidSub;
+    public Subscriber<rss_msgs.PositionMsg> posSub;
 
     /**
      * <p>
@@ -2074,6 +2082,18 @@ public class VisionGUI extends JPanel implements NodeMain {
                                (int) message.getHeight());
             }
         });
+        posSub = node.newSubscriber("/loc/Position", "rss_msgs/PositionMsg");
+        posSub.addMessageListener(
+            new MessageListener<rss_msgs.PositionMsg>() {
+                @Override public void onNewMessage(rss_msgs.PositionMsg msg) {
+                    if (firstPoseUpdate) {
+                        firstPoseUpdate = false;
+                        resetWorldToView(msg.getX(), msg.getY());
+                    }
+                    setRobotPose(msg.getX(), msg.getY(), msg.getTheta());
+                }
+            });
+                    
 
         //publisher = node.newPublisher("command/Motors", "rss_msgs/MotionMsg");
     }

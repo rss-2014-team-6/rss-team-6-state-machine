@@ -26,10 +26,6 @@ import java.lang.InterruptedException;
  */
 public class StateMachine extends AbstractNodeMain implements Runnable {
 
-    private VisionGUI gui;
-
-    protected boolean firstUpdate = true;
-
     public Subscriber<PositionMsg> posSub;
     //public Subscriber<WaypointMsg> waypointSub;
     public Subscriber<BumpMsg> bumpSub;
@@ -80,16 +76,6 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private int count;
    
-
-    /**
-     * <p>
-     * Create a new StateMachine object.
-     * </p>
-     */
-    public StateMachine() {
-
-        gui = new VisionGUI();
-    }
 
     public void handle(PositionMsg odo){
        
@@ -204,14 +190,6 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
             @Override
 	    public void onNewMessage(rss_msgs.PositionMsg message) {
                 handle(message);
-                if (firstUpdate) {
-                    firstUpdate = false;
-                    gui.resetWorldToView(message.getX(), message.getY());
-                }
-               
-                gui.setRobotPose(message.getX(), message.getY(), message.getTheta());
-
-		System.out.println("State Machine got position message!");
             }
         });
     
