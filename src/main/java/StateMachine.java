@@ -130,11 +130,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	count++;
 
 	if(count >= 2000){
-	    WaypointMsg msg = waypointPub.newMessage();
+	    PositionTargetMsg msg = posTargMsgPub.newMessage();
 	    msg.setX(rand.nextDouble()*10);
 	    msg.setY(rand.nextDouble()*10);
 	    msg.setTheta(-1);
-	    waypointPub.publish(msg);
+	    posTargMsgPub.publish(msg);
 	    count = 0;
 	}
 	
