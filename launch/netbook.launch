@@ -5,12 +5,12 @@
 
   <node name="view" pkg="image_view" type="image_view" args="image:=/rss/video" machine="eeepc2" />
   <node name="gui" pkg="rosjava_pkg" type="state_machine-execute" args="gui.MapGUI" machine="eeepc2" output="screen" />
-  <node name="high" pkg="rosjava_pkg" type="state_machine-execute" args="StateMachine.StateMachine" machine="eeepc2" output="screen" />
-  <node name="mtn" pkg="rosjava_pkg" type="motion-execute" args="motion.Listener" machine="eeepc2" output="screen"/>
+  <node name="high" pkg="rosjava_pkg" type="state_machine-execute" args="StateMachine.StateMachine" machine="eeepc2" />
+  <node name="mtn" pkg="rosjava_pkg" type="motion-execute" args="motion.Listener" machine="eeepc2" />
   <node name="sense" pkg="rosjava_pkg" type="sensing-execute" args="Publisher" machine="eeepc2" />
   <node name="odo" pkg="rosjava_pkg" type="odometry-execute" args="odometry.Odometry" machine="eeepc2" />
-  <node name="path" pkg="rosjava_pkg" type="path_planning-execute" args="path_planning.PlannerNode" machine="eeepc2" />
-  <node name="loc" pkg="rosjava_pkg" type="localization-execute" args="localization.Localization" machine="eeepc2" output="screen">
+  <node name="path" pkg="rosjava_pkg" type="path_planning-execute" args="path_planning.PlannerNode" machine="eeepc2" output="screen" />
+  <node name="loc" pkg="rosjava_pkg" type="localization-execute" args="localization.Localization" machine="eeepc2" >
     <param name="/mapFileName" value="$(find rosjava_pkg)/maps/global-nav-maze-2011-basic.map" />
   </node>
   <node name="vid" pkg="gscam" type="gscam" machine="eeepc2">

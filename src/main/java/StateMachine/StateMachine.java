@@ -109,13 +109,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     public void handle(BumpMsg bump){
         System.out.println("bump message handled");
-	
-	
-
-       
 	count++;
 
-	if(count >= 2000){
+	if(count >= 20){
 	    PositionTargetMsg msg = posTargMsgPub.newMessage();
 	    msg.setX(rand.nextDouble()*10);
 	    msg.setY(rand.nextDouble()*10);
@@ -123,8 +119,6 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	    posTargMsgPub.publish(msg);
 	    count = 0;
 	}
-	
-	
     }
     public void handle(BreakBeamMsg bbeam){
         System.out.println("bbeam handled");
