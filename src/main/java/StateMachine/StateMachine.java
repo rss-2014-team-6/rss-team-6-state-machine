@@ -49,8 +49,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private final double ACCEPTABLE_ERROR = 0.05;
     
+    private long startTime;
+    
     private int age;
-    private int state;
+    //private int state;
     
     private final int ERROR = -1;
     //overall time sections
@@ -71,6 +73,15 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private final int BUILD2 = 32;
     private final int BUILD3 = 33;
     private final int DRIVE_BUILD = 34; //drive to next place to build a tower
+    
+    private State state = new State ("example"){
+      @Override
+      public void handle (PositionMsg msg){
+          System.out.println("I'm an overwritten state handler for pose");
+      }
+    };
+    
+    
     
     private Random rand; // for testing --bhomberg
     
@@ -157,6 +168,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	    waypointPub.publish(msg);
 	    }*/
     }
+    
+    public long getTime(){
+        return System.currentTimeMillis() - startTime;
+    }
 
     /**
      * <p>
@@ -169,6 +184,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     @Override
     public void onStart(final ConnectedNode node) {
 	System.out.println("Hi, I'm a state machine!");
+	startTime = System.currentTimeMillis();
 	
 	posTargMsgPub = node.newPublisher("/state/PositionTarget", "rss_msgs/PositionTargetMsg");
 	ctrlStatePub = node.newPublisher("/state/State", std_msgs.String._TYPE);
