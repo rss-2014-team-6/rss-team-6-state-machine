@@ -1,19 +1,16 @@
 <launch>
-  <include file="$(find rosjava_pkg)/state_machine/launch/config.netbook.launch" />
-  
-  <node name="rep" pkg="topic_tools" type="relay" args="/camera/image_raw /rss/video" machine="eeepc2"/>
-
-  <node name="view" pkg="image_view" type="image_view" args="image:=/rss/video" machine="eeepc2" />
-  <node name="gui" pkg="rosjava_pkg" type="state_machine-execute" args="gui.MapGUI" machine="eeepc2" output="screen" />
-  <node name="high" pkg="rosjava_pkg" type="state_machine-execute" args="StateMachine.StateMachine" machine="eeepc2" />
-  <node name="mtn" pkg="rosjava_pkg" type="motion-execute" args="motion.Listener" machine="eeepc2" />
-  <node name="sense" pkg="rosjava_pkg" type="sensing-execute" args="Publisher" machine="eeepc2" />
-  <node name="odo" pkg="rosjava_pkg" type="odometry-execute" args="odometry.Odometry" machine="eeepc2" />
-  <node name="path" pkg="rosjava_pkg" type="path_planning-execute" args="path_planning.PlannerNode" machine="eeepc2" output="screen" />
-  <node name="loc" pkg="rosjava_pkg" type="localization-execute" args="localization.Localization" machine="eeepc2" >
+  <node name="rep" pkg="topic_tools" type="relay" args="/camera/image_raw /rss/video"/>
+  <node name="view" pkg="image_view" type="image_view" args="image:=/rss/video" />
+  <node name="gui" pkg="rosjava_pkg" type="state_machine-execute" args="gui.MapGUI" output="screen" />
+  <node name="high" pkg="rosjava_pkg" type="state_machine-execute" args="StateMachine.StateMachine" />
+  <node name="mtn" pkg="rosjava_pkg" type="motion-execute" args="motion.Listener" />
+  <node name="sense" pkg="rosjava_pkg" type="sensing-execute" args="Publisher" />
+  <node name="odo" pkg="rosjava_pkg" type="odometry-execute" args="odometry.Odometry" />
+  <node name="path" pkg="rosjava_pkg" type="path_planning-execute" args="path_planning.PlannerNode" output="screen" />
+  <node name="loc" pkg="rosjava_pkg" type="localization-execute" args="localization.Localization" >
     <param name="/mapFileName" value="$(find rosjava_pkg)/maps/global-nav-maze-2011-basic.map" />
   </node>
-  <node name="vid" pkg="gscam" type="gscam" machine="eeepc2">
+  <node name="vid" pkg="gscam" type="gscam">
     <param name="gscam_config" value="v4l2src device=/dev/video0 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
   </node>
 </launch>
