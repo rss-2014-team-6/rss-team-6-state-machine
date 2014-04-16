@@ -113,8 +113,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
 	if(count >= 20){
 	    PositionTargetMsg msg = posTargMsgPub.newMessage();
-	    msg.setX(rand.nextDouble()*10);
-	    msg.setY(rand.nextDouble()*10);
+	    msg.setX(-0.1524);
+	    msg.setY(3.6576);
+	    //msg.setX(rand.nextDouble()*3 - 0.5);
+	    //msg.setY(rand.nextDouble()*4.5 - 0.5);
 	    msg.setTheta(-1);
 	    posTargMsgPub.publish(msg);
 	    count = 0;
