@@ -88,7 +88,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private State startState = new State("start"){
 	    @Override
 		public State handle (BumpMsg msg){
-		if(getTime() - startTime >= 60000) // wait 30 seconds
+		VelocityMsg vmsg = velPub.newMessage();
+		vmsg.setTranslationVelocity(0);
+		vmsg.setRotationVelocity(0);
+		velPub.publish(vmsg);
+		System.out.println("starttime: " + startTime + "curr time: " + getTime());
+		if(getTime() >= 20000) // wait 30 seconds
 		    return spinState;
 		return this;
 	    }
@@ -97,10 +102,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private State spinState = new State ("spin"){
 	    @Override
 		public State handle(BumpMsg msg){
-		if(getTime() - startTime <= 90000){ // spin for a minute
+		if(getTime() <= 50000){ // spin for 30 s
 		    VelocityMsg vmsg = velPub.newMessage();
-		    vmsg.setTranslationVelocity(0);
-		    vmsg.setRotationVelocity(.25);
+		    vmsg.setTranslationVelocity(.25);
+		    vmsg.setRotationVelocity(0);
 		    velPub.publish(vmsg);
 		    return this;
 		}

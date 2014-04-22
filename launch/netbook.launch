@@ -4,12 +4,12 @@
   
   <node name="guiVision" pkg="rosjava_pkg" type="vision-execute" args="vision.VisualServo" output="screen" />
   <node name="gui" pkg="rosjava_pkg" type="state_machine-execute" args="gui.MapGUI" output="screen" />
-  <node name="high" pkg="rosjava_pkg" type="state_machine-execute" args="StateMachine.StateMachine" />
+  <node name="high" pkg="rosjava_pkg" type="state_machine-execute" args="StateMachine.StateMachine" output="screen"/>
   <node name="mtn" pkg="rosjava_pkg" type="motion-execute" args="motion.Listener" />
   <node name="sense" pkg="rosjava_pkg" type="sensing-execute" args="Publisher" />
   <node name="odo" pkg="rosjava_pkg" type="odometry-execute" args="odometry.Odometry" />
   <node name="path" pkg="rosjava_pkg" type="path_planning-execute" args="path_planning.PlannerNode" output="screen" />
-  <node name="loc" pkg="rosjava_pkg" type="localization-execute" args="localization.Localization" >
+  <node name="loc" pkg="rosjava_pkg" type="localization-execute" args="localization.Localization" output="screen">
     <param name="/mapFileName" value="$(find rosjava_pkg)/maps/global-nav-maze-2011-basic.map" />
   </node>
   <node name="vid1" pkg="gscam" type="gscam">
