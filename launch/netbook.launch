@@ -2,7 +2,7 @@
   <node name="rep1" pkg="topic_tools" type="relay" args="/lower_cam/image_raw /rss/low_video" />
   <node name="rep2" pkg="topic_tools" type="relay" args="/upper_cam/image_raw /rss/high_video" />
   
-  <node name="guiVision" pkg="rosjava_pkg" type="vision-execute" args="VisualServo" output="screen" />
+  <node name="guiVision" pkg="rosjava_pkg" type="vision-execute" args="vision.VisualServo" output="screen" />
   <node name="gui" pkg="rosjava_pkg" type="state_machine-execute" args="gui.MapGUI" output="screen" />
   <node name="high" pkg="rosjava_pkg" type="state_machine-execute" args="StateMachine.StateMachine" />
   <node name="mtn" pkg="rosjava_pkg" type="motion-execute" args="motion.Listener" />
