@@ -88,7 +88,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private State startState = new State("start"){
 	    @Override
 		public State handle (BumpMsg msg){
-		if(getTime() - startTime >= 30000) // wait 30 seconds
+		if(getTime() - startTime >= 60000) // wait 30 seconds
 		    return spinState;
 		return this;
 	    }
