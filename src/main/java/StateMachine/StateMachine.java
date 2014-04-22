@@ -131,7 +131,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
    
 
     public void handle(PositionMsg odo){
-	currState.handle(odo);
+	currState = currState.handle(odo);
 	
 	
         /*if(dist(odo) < ACCEPTABLE_ERROR){
@@ -148,7 +148,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     }
     
     public void handle(WaypointMsg way){
-	currState.handle(way);
+	currState = currState.handle(way);
         /*System.out.println("waypoint message handled x: " + way.getX() +
                                                         "  y: " + way.getY() +
                                                         "  theta: " + way.getTheta());*/
@@ -164,7 +164,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     }
     
     public void handle(BumpMsg bump){
-	currState.handle(bump);
+	currState = currState.handle(bump);
         /*System.out.println("bump message handled");
 	count++;
 
@@ -180,11 +180,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	    }*/
     }
     public void handle(BreakBeamMsg bbeam){
-        currState.handle(bbeam);
+        currState = currState.handle(bbeam);
 	//System.out.println("bbeam handled");
     }
     public void handle(SonarMsg sonar){
-	currState.handle(sonar);
+	currState = currState.handle(sonar);
         //System.out.println("sonar handled");
     }
     public double dist(PositionMsg odo){
