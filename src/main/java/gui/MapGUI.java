@@ -6,14 +6,24 @@ import java.awt.geom.GeneralPath;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
+import org.ros.message.MessageListener;
 import org.ros.node.ConnectedNode;
 import org.ros.node.Node;
 import org.ros.node.NodeMain;
 import org.ros.node.topic.Subscriber;
+
+import gui_msgs.GUIPathMsg;
+import gui_msgs.GUIGraphMsg;
+import gui_msgs.PointDataMsg;
+import gui_msgs.PointMappingMsg;
 
 
 /**
@@ -56,6 +66,18 @@ public class MapGUI extends SonarGUI implements NodeMain{
     public static final float POLY_LINE_WIDTH = 1.5f;
 
     /**
+     * <p>Line width of the lines making up a {@link MapGUI.Path} in
+     * pixels.</p>
+     **/
+    public static final float PATH_LINE_WIDTH = 2.0f;
+
+    /**
+     * <p>Line width of the lines making up a {@link MapGUI.Graph} in
+     * pixels.</p>
+     **/
+    public static final float GRAPH_LINE_WIDTH = 1.0f;
+
+    /**
      * <p>Default color for {@link MapGUI.Rect}s.</p>
      **/
     public static final Color DEFAULT_RECT_COLOR = Color.RED;
@@ -64,6 +86,16 @@ public class MapGUI extends SonarGUI implements NodeMain{
      * <p>Default color for {@link MapGUI.Poly}s.</p>
      **/
     public static final Color DEFAULT_POLY_COLOR = Color.RED;
+
+    /**
+     * <p>Default color for {@link MapGUI.Path}s.</p>
+     **/
+    public static final Color DEFAULT_PATH_COLOR = Color.RED;
+
+    /**
+     * <p>Default color for {@link MapGUI.Graph}s.</p>
+     **/
+    public static final Color DEFAULT_GRAPH_COLOR = Color.GRAY;
 
     /**
      * <p>Whether to paint the rects.</p>
@@ -255,6 +287,122 @@ public class MapGUI extends SonarGUI implements NodeMain{
     }
 
     /**
+     * <p>A visual path of 2D points.</p>
+     **/
+    protected class Path extends Glyph {
+        /**
+         * <p>Path color.</p>
+         **/
+        Color color = DEFAULT_PATH_COLOR;
+
+        /**
+         * <p>The path in world coords.</p>
+         **/
+        GeneralPath path = new GeneralPath();
+
+        /**
+         * <p>Constructor, making an initially empty path.</p>
+         **/
+        Path() {}
+
+        /**
+         * <p>Update the path.</p>
+         *
+         * @param pathList list of points in the linear path
+         **/
+        public void updatePath(List<Point2D.Double> pathList) {
+            path.reset();
+            if (pathList.size() > 0) {
+                Point2D.Double first = pathList.get(0);
+                path.moveTo(first.getX(), first.getY());
+            }
+            for (int i = 1; i < pathList.size(); i++) {
+                Point2D.Double next = pathList.get(i);
+                path.lineTo(next.getX(), next.getY());
+            }
+        }
+
+        /**
+         * <p>Set the color.</p>
+         *
+         * @param c color to set
+         **/
+        public void setColor(Color c) {
+            color = c;
+        }
+
+        /**
+         * <p>Paints the path.</p>
+         *
+         * <p>Assumes line width is already set.</p>
+         *
+         * @param g2d the graphics context
+         **/
+        @Override public void paint(Graphics2D g2d) {
+            g2d.setColor(color);
+
+            g2d.draw(path);
+        }
+    }
+
+    /**
+     * <p>A visual graph of interconnected 2D point.</p>
+     **/
+    protected class Graph extends Glyph {
+        /**
+         * <p>Graph color.</p>
+         **/
+        Color color = DEFAULT_GRAPH_COLOR;
+
+        /**
+         * <p>The GeneralPath represneting the visual graph in world coords.</p>
+         **/
+        GeneralPath path = new GeneralPath();
+
+        /**
+         * <p>Constructor, making an initially empty graph.</p>
+         **/
+        Graph() {}
+
+        /**
+         * <p>Update the graph.</p>
+         *
+         * @param graphMap map from 2D points to list of other points
+         **/
+        public void updateGraph(Map<Point2D.Double, ArrayList<Point2D.Double>> graphMap) {
+            path.reset();
+            for (Point2D.Double first : graphMap.keySet()) {
+                for (Point2D.Double second : graphMap.get(first)) {
+                    path.moveTo(first.getX(), first.getY());
+                    path.lineTo(second.getX(), second.getY());
+                }
+            }
+        }
+
+        /**
+         * <p>Set the color.</p>
+         *
+         * @param c color to set
+         **/
+        public void setColor(Color c) {
+            color = c;
+        }
+
+        /**
+         * <p>Paints the graph.</p>
+         *
+         * <p>Assumes line width is already set.</p>
+         *
+         * @param g2d the graphics context
+         **/
+        @Override public void paint(Graphics2D g2d) {
+            g2d.setColor(color);
+
+            g2d.draw(path);
+        }
+    }
+
+    /**
      * <p>All the {@link MapGUI.Rect}s.</p>
      **/
     protected java.util.Set<Rect> rects =
@@ -265,6 +413,16 @@ public class MapGUI extends SonarGUI implements NodeMain{
      **/
     protected java.util.Set<Poly> polys =
         Collections.synchronizedSet(new HashSet<Poly>());
+
+    /**
+     * <p>The single {@link MapGUI.Path}.</p>
+     **/
+    protected Path path = new Path();
+
+    /**
+     * <p>The single {@link MapGUI.Graph}.</p>
+     **/
+    protected Graph graph = new Graph();
 
     /**
      * <p>Consruct a new MapGUI.</p>
@@ -400,6 +558,10 @@ public class MapGUI extends SonarGUI implements NodeMain{
 
         if (polysEnabled)
             paintPolys(g2d);
+
+        paintPath(g2d);
+
+        paintGraph(g2d);
     }
 
     /**
@@ -441,9 +603,37 @@ public class MapGUI extends SonarGUI implements NodeMain{
         }
     }
 
+    /**
+     * <p>Paint current {@link #path}.</p>
+     *
+     * @param g2d the graphics context
+     **/
+    protected void paintPath(Graphics2D g2d) {
+        setLineWidth(g2d, PATH_LINE_WIDTH);
+
+        synchronized (path) {
+            path.paint(g2d);
+        }
+    }
+
+    /**
+     * <p>Paint current {@link #graph}.</p>
+     *
+     * @param g2d the graphics context
+     **/
+    protected void paintGraph(Graphics2D g2d) {
+        setLineWidth(g2d, GRAPH_LINE_WIDTH);
+
+        synchronized (graph) {
+            graph.paint(g2d);
+        }
+    }
+
     private Subscriber<gui_msgs.GUIRectMsg> guiRectSub;
     private Subscriber<gui_msgs.GUIPolyMsg> guiPolySub;
     private Subscriber<gui_msgs.GUIEraseMsg> guiEraseSub;
+    private Subscriber<gui_msgs.GUIPathMsg> guiPathSub;
+    private Subscriber<gui_msgs.GUIGraphMsg> guiGraphSub;
 
     /**
      * Hook called by ROS to start the gui
@@ -455,6 +645,37 @@ public class MapGUI extends SonarGUI implements NodeMain{
         guiPolySub.addMessageListener(new PolyMessageListener(this));
         guiEraseSub = node.newSubscriber("gui/Erase", "gui_msgs/GUIEraseMsg");
         guiEraseSub.addMessageListener(new EraseMessageListener(this));
+        guiPathSub = node.newSubscriber("gui/Path", "gui_msgs/GUIPathMsg");
+        guiPathSub.addMessageListener(
+            new MessageListener<gui_msgs.GUIPathMsg>() {
+                @Override public void onNewMessage(gui_msgs.GUIPathMsg message) {
+                    // Deconstruct message into ArrayList<Point2D.Double>
+                    ArrayList<Point2D.Double> pathList = new ArrayList<Point2D.Double>();
+                    for (PointDataMsg point : message.getPoints()) {
+                        pathList.add(new Point2D.Double(point.getX(), point.getY()));
+                    }
+                    path.updatePath(pathList);
+                }
+            });
+        guiGraphSub = node.newSubscriber("gui/Graph", "gui_msgs/GUIGraphMsg");
+        guiGraphSub.addMessageListener(
+            new MessageListener<gui_msgs.GUIGraphMsg>() {
+                @Override public void onNewMessage(gui_msgs.GUIGraphMsg message) {
+                    // Deconstruct message into HashMap<Point2D.Double, ArrayList<Point2D.Double>>
+                    HashMap<Point2D.Double, ArrayList<Point2D.Double>> map =
+                        new HashMap<Point2D.Double, ArrayList<Point2D.Double>>();
+                    for (PointMappingMsg mapping : message.getMappings()) {
+                        ArrayList<Point2D.Double> targets = new ArrayList<Point2D.Double>();
+                        for (PointDataMsg point : mapping.getTargets()) {
+                            targets.add(new Point2D.Double(point.getX(), point.getY()));
+                        }
+                        Point2D.Double sourcePt = new Point2D.Double(
+                            mapping.getSource().getX(), mapping.getSource().getY());
+                        map.put(sourcePt, targets);
+                    }
+                    graph.updateGraph(map);
+                }
+            });
         super.onStart(node);
     }
 
