@@ -1,6 +1,8 @@
 <launch>
-  <node name="rep" pkg="topic_tools" type="relay" args="/camera/image_raw /rss/video"/>
-  <node name="view" pkg="image_view" type="image_view" args="image:=/rss/video" />
+  <node name="rep1" pkg="topic_tools" type="relay" args="/lower_cam/image_raw /rss/low_video" />
+  <node name="rep2" pkg="topic_tools" type="relay" args="/upper_cam/image_raw /rss/high_video" />
+  
+  <node name="guiVision" pkg="rosjava_pkg" type="vision-execute" args="VisualServo" output="screen" />
   <node name="gui" pkg="rosjava_pkg" type="state_machine-execute" args="gui.MapGUI" output="screen" />
   <node name="high" pkg="rosjava_pkg" type="state_machine-execute" args="StateMachine.StateMachine" />
   <node name="mtn" pkg="rosjava_pkg" type="motion-execute" args="motion.Listener" />
@@ -10,7 +12,13 @@
   <node name="loc" pkg="rosjava_pkg" type="localization-execute" args="localization.Localization" >
     <param name="/mapFileName" value="$(find rosjava_pkg)/maps/global-nav-maze-2011-basic.map" />
   </node>
-  <node name="vid" pkg="gscam" type="gscam">
+  <node name="vid1" pkg="gscam" type="gscam">
+    <param name="gscam_config" value="v4l2src device=/dev/video1 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
+    <remap from="camera/image_raw" to="lower_cam/image_raw" />
+  </node>
+  
+  <node name="vid2" pkg="gscam" type="gscam">
     <param name="gscam_config" value="v4l2src device=/dev/video0 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
+    <remap from="camera/image_raw" to="upper_cam/image_raw" />
   </node>
 </launch>
