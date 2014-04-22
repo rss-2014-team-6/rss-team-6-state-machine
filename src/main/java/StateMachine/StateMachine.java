@@ -288,7 +288,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                 //System.out.println("State Machine got a sonar (or a few)");
             }
         });
-        
+
+
+	currState = startState;
         //count = 0; // for testing --bhomberg
     }
     
