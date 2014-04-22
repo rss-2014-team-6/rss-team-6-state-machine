@@ -19,44 +19,52 @@ public class State {
     }
 
 
-    public void handle (BumpMsg msg){
+    public State handle (BumpMsg msg){
 
-	System.out.println("Node " + name + " handled bump msg");
+	// commenting all these out since they'll clog up the debug screen
+	//System.out.println("Node " + name + " handled bump msg");
+	return this;
     }
 
 
-    public void handle (SonarMsg msg){
+    public State handle (SonarMsg msg){
 
-	System.out.println("Node " + name + " handled sonar msg");
+	//System.out.println("Node " + name + " handled sonar msg");
+	return this;
     }
 
 
 
-    public void handle (PositionMsg msg){
+    public State handle (PositionMsg msg){
 
-	System.out.println("Node " + name + " handled pose msg");
+	//System.out.println("Node " + name + " handled pose msg");
+	return this;
     }
 
 
-    public void handle (WaypointMsg msg){
+    public State handle (WaypointMsg msg){
 
-	System.out.println("Node " + name + " handled waypoint msg");
+	//System.out.println("Node " + name + " handled waypoint msg");
+	return this;
     }
 
 
-    public void handle (OdometryMsg msg){
+    public State handle (OdometryMsg msg){
 
-	System.out.println("Node " + name + " handled odo msg");
+	//System.out.println("Node " + name + " handled odo msg");
+	return this;
     }
 
 
-    public void handle (BreakBeamMsg msg){
+    public State handle (BreakBeamMsg msg){
 
-	System.out.println("Node " + name + " handled breakbeam msg");
+	//System.out.println("Node " + name + " handled breakbeam msg");
+	return this;
     }
 
-    public void handle (PositionTargetMsg msg){
+    public State handle (PositionTargetMsg msg){
 
-	System.out.println("Node " + name + " handled postarg msg");
+	//System.out.println("Node " + name + " handled postarg msg");
+	return this;
     }
 }
