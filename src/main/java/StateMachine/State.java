@@ -1,6 +1,7 @@
 package StateMachine;
 
 
+import rss_msgs.BallLocationMsg;
 import rss_msgs.PositionMsg;
 import rss_msgs.PositionTargetMsg;
 import rss_msgs.WaypointMsg;
@@ -15,56 +16,51 @@ public class State {
 
     public State (String name){
 	this.name = name;
-
     }
 
 
-    public State handle (BumpMsg msg){
+    public void handle (BumpMsg msg){
 
 	// commenting all these out since they'll clog up the debug screen
 	//System.out.println("Node " + name + " handled bump msg");
-	return this;
     }
 
 
-    public State handle (SonarMsg msg){
+    public void handle (SonarMsg msg){
 
 	//System.out.println("Node " + name + " handled sonar msg");
-	return this;
     }
 
 
 
-    public State handle (PositionMsg msg){
+    public void handle (PositionMsg msg){
 
 	//System.out.println("Node " + name + " handled pose msg");
-	return this;
     }
 
 
-    public State handle (WaypointMsg msg){
+    public void handle (WaypointMsg msg){
 
 	//System.out.println("Node " + name + " handled waypoint msg");
-	return this;
     }
 
 
-    public State handle (OdometryMsg msg){
+    public void handle (OdometryMsg msg){
 
 	//System.out.println("Node " + name + " handled odo msg");
-	return this;
     }
 
 
-    public State handle (BreakBeamMsg msg){
+    public void handle (BreakBeamMsg msg){
 
 	//System.out.println("Node " + name + " handled breakbeam msg");
-	return this;
     }
 
-    public State handle (PositionTargetMsg msg){
+    public void handle (PositionTargetMsg msg){
 
 	//System.out.println("Node " + name + " handled postarg msg");
-	return this;
+    }
+
+    public void handle (BallLocationMsg msg){
     }
 }

@@ -78,18 +78,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private final int BUILD3 = 33;
     private final int DRIVE_BUILD = 34; //drive to next place to build a tower*/
 
-    private State currState;
-    
-
-    /*private State state = new State ("example"){
-	    @Override
-		public void handle (PositionMsg msg){
-		System.out.println("I'm an overwritten state handler for pose");
-	    }
-	    };*/
-
     private State startState = new State("start"){
-	    @Override public State handle (BumpMsg msg){
+	    @Override public void handle (BumpMsg msg){
 		VelocityMsg vmsg = velPub.newMessage();
 		vmsg.setTranslationVelocity(0);
 		vmsg.setRotationVelocity(0);
@@ -99,20 +89,19 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                     InitializedMsg imsg = initPub.newMessage();
                     imsg.setInitialized(true);
                     initPub.publish(imsg);
-		    return spinState;
+                    state = spinState;
+                    lastState = this;
                 }
-		return this;
 	    }
 	};
     
     private State spinState = new State ("spin"){
-	    @Override public State handle(BumpMsg msg){
+	    @Override public void handle(BumpMsg msg){
 		if(getTime() <= 40000){ // spin for 30 s
 		    VelocityMsg vmsg = velPub.newMessage();
 		    vmsg.setTranslationVelocity(0);
 		    vmsg.setRotationVelocity(2.0);
 		    velPub.publish(vmsg);
-		    return this;
 		}
 		else{
 		    VelocityMsg vmsg = velPub.newMessage();
@@ -120,14 +109,15 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    vmsg.setRotationVelocity(0);
 		    velPub.publish(vmsg);
                     System.out.println("Transition to goal state");
-		    return goalState;
+		    state = goalState;
+                    lastState = this;
 		}
 
 	    }
 	};
 
     private State goalState = new State("goal"){
-            @Override public State handle(BumpMsg msg){
+            @Override public void handle(BumpMsg msg){
                 System.out.println("Goal state");
                 PositionTargetMsg posTargMsg = posTargMsgPub.newMessage();
                 posTargMsg.setX(-0.1);
@@ -135,15 +125,14 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                 posTargMsg.setTheta(-1);
                 posTargMsgPub.publish(posTargMsg);
                 currGoal = posTargMsg;
-                return this;
             }
-            @Override public State handle(PositionMsg msg){
+            @Override public void handle(PositionMsg msg){
                 final double GOAL_THRESH = 0.03;
                 if (dist(msg) < GOAL_THRESH) {
                     System.out.println("Reached goal!");
-                    return stopState;
+                    state = stopState;
+                    lastState = this;
                 }
-                return this;
             }
         };
 
@@ -209,7 +198,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
           if (spins == -1){
               startTheta = msg.getTheta();
           }
-          if ((msg.getTheta - startTheta)%360 < SPIN_THRESHOLD){ //probs a better way to do this
+          if ((msg.getTheta() - startTheta)%360 < SPIN_THRESHOLD){ //probs a better way to do this
               spins++;   
           }
           if (spins > 2){
@@ -238,7 +227,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
            
            ballMsg.setRange(0);
            ballMsg.setBearing(0);
-           ballLocatoinPub.publish(ballMsg);
+           ballLocationPub.publish(ballMsg);
            
            //check if ball is no longer in frame, drive forward extra x feet, return to previous state
            
@@ -246,8 +235,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     };
     
     private State wander = new State("wander"){
-        @Override
         final double WANDER_THRESHOLD = 0.5;
+
+        @Override
         public void handle(PositionMsg msg){
             if (!localized(msg)){
                 state = lost;
@@ -306,10 +296,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     };
     
     private State driveBuildSite = new State("driveBuildSite"){
-        @Override
         final double DISTANCE_THRESHOLD = 0.5;
         final double HOME_X = 0.0;
         final double HOME_Y = 0.0;
+
+        @Override
         public void handle(PositionMsg msg){
             if (!localized(msg)){
                 state = driveLost;
@@ -489,7 +480,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         posSub.addMessageListener(new MessageListener<rss_msgs.PositionMsg>() {
             @Override
 	    public void onNewMessage(rss_msgs.PositionMsg message) {
-                currState = currState.handle(message);
+                state.handle(message);
             }
         });
     
@@ -509,7 +500,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         bumpSub.addMessageListener(new MessageListener<rss_msgs.BumpMsg>(){
             @Override
             public void onNewMessage(rss_msgs.BumpMsg message){
-                currState = currState.handle(message);
+                state.handle(message);
                 //System.out.println("State Machine got a bump");
                 
             }
@@ -519,7 +510,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         breakbeamSub.addMessageListener(new MessageListener<rss_msgs.BreakBeamMsg>() {
             @Override
             public void onNewMessage(rss_msgs.BreakBeamMsg message){
-                currState = currState.handle(message);
+                state.handle(message);
                 //System.out.println("State Machine got a broken beam");
             }
         });
@@ -528,14 +519,14 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         sonarSub.addMessageListener(new MessageListener<rss_msgs.SonarMsg>(){
             @Override
             public void onNewMessage(rss_msgs.SonarMsg message){
-                currState = currState.handle(message);
+                state.handle(message);
                 //System.out.println("State Machine got a sonar (or a few)");
             }
         });
 
 
 
-	currState = startState;
+	state = startState;
         //count = 0; // for testing --bhomberg
 
         
@@ -543,7 +534,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         ballLocationSub.addMessageListener(new MessageListener<rss_msgs.BallLocationMsg>() {
             @Override
             public void onNewMessage(rss_msgs.BallLocationMsg message){
-                handle(message);
+                state.handle(message);
                 System.out.println("State Machine got a ball location message");
             }
         });
