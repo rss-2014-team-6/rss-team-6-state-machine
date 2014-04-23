@@ -418,7 +418,7 @@ public class MapGUI extends SonarGUI implements NodeMain{
         List<GUIPoint> guiPoints = new ArrayList<GUIPoint>();
 
         /**
-         * <p>Constructor, making an initially empty graph.</p>
+         * <p>Constructor, making an initially empty cloud.</p>
          **/
         ParticleCloud() {}
 
@@ -433,10 +433,18 @@ public class MapGUI extends SonarGUI implements NodeMain{
             if (points.size() != weights.length) {
                 throw new RuntimeException("points and weights lengths must match!");
             }
+            double maxConvertedWeight = 0.0;
+            for (int i = 0; i < weights.length; i++) {
+                double converted = Math.exp(-1 * weights[i]);
+                if (converted > maxConvertedWeight) {
+                    maxConvertedWeight = converted;
+                }
+            }
             for (int i = 0; i < points.size(); i++) {
                 Point2D.Double pt = points.get(i);
                 double weight = weights[i];
-                double red = Math.exp(-1 * weight);
+                double red = Math.exp(-1 * weight) / maxConvertedWeight; // scaled
+                System.out.println("Point: " + pt + ", color: " + red + ", weight: " + weight);
                 // Color the point based on weight
                 GUIPoint guiPt = new GUIPoint(pt.x, pt.y, O_POINT, new Color((float)red, 0.0f, 0.0f));
                 guiPoints.add(guiPt);
@@ -444,14 +452,15 @@ public class MapGUI extends SonarGUI implements NodeMain{
         }
 
         /**
-         * <p>Paints the graph.</p>
-         *
-         * <p>Assumes line width is already set.</p>
+         * <p>Paints the cloud.</p>
          *
          * @param g2d the graphics context
          **/
         @Override public void paint(Graphics2D g2d) {
-            for (GUIPoint guiPt : points) {
+            setLineWidth(g2d, POINT_LINE_WIDTH);
+
+            for (GUIPoint guiPt : guiPoints) {
+                System.out.println("Paint point: " + guiPt + ", color: " + guiPt.color);
                 guiPt.paint(g2d);
             }
         }
@@ -622,6 +631,8 @@ public class MapGUI extends SonarGUI implements NodeMain{
         paintPath(g2d);
 
         paintGraph(g2d);
+
+        paintCloud(g2d);
     }
 
     /**
@@ -689,6 +700,18 @@ public class MapGUI extends SonarGUI implements NodeMain{
         }
     }
 
+    /**
+     * <p>Paint current {@link #cloud}.</p>
+     *
+     * @param g2d the graphics context
+     **/
+    protected void paintCloud(Graphics2D g2d) {
+
+        synchronized(cloud) {
+            cloud.paint(g2d);
+        }
+    }
+
     private Subscriber<gui_msgs.GUIRectMsg> guiRectSub;
     private Subscriber<gui_msgs.GUIPolyMsg> guiPolySub;
     private Subscriber<gui_msgs.GUIEraseMsg> guiEraseSub;
@@ -752,7 +775,9 @@ public class MapGUI extends SonarGUI implements NodeMain{
                         Point2D.Double pt = new Point2D.Double(ptData.getX(), ptData.getY());
                         convertedPoints.add(pt);
                     }
-                    cloud.updateParticleCloud(convertedPoints, weights);
+                    synchronized(cloud) {
+                        cloud.updateParticleCloud(convertedPoints, weights);
+                    }
                 }
             });
         super.onStart(node);
