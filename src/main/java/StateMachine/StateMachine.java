@@ -168,7 +168,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         public void handle(PositionMsg msg){
             if(localized(msg)){
                 state = lastState;
-                lastState = lost;
+                lastState = this;
             }
         }
     };
@@ -181,7 +181,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
       public void handle(PositionMsg msg){
           if (!localized(msg)){
               state = lost;
-              lastState = spin;
+              lastState = this;
               return;
           }
           if (timeToGoHome()){
@@ -203,7 +203,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
           }
           if (spins > 2){
               state = wander;
-              lastState = spin; 
+              lastState = this; 
               publishWander();
           }
       }
@@ -211,7 +211,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
       @Override
       public void handle(BallLocationMsg msg){
           state = visualServo;
-          lastState = spin;
+          lastState = this;
                   
       }
     };
@@ -241,7 +241,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         public void handle(PositionMsg msg){
             if (!localized(msg)){
                 state = lost;
-                lastState = wander;
+                lastState = this;
                 return;
             }
             if (timeToGoHome()){
@@ -263,7 +263,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         
         public void handle(BallLocationMsg msg){
             state = visualServo;
-            lastState = wander;
+            lastState = this;
         }
     };
     
@@ -290,7 +290,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         public void handle(PositionMsg msg){
             if(localized(msg)){
                 state = lastState;
-                lastState = driveLost;
+                lastState = this;
             }
         }
     };
@@ -304,7 +304,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         public void handle(PositionMsg msg){
             if (!localized(msg)){
                 state = driveLost;
-                lastState = driveBuildSite;
+                lastState = this;
                 return;
             }
             if (Math.sqrt(Math.pow(HOME_X - msg.getX(), 2) + Math.pow(HOME_Y - msg.getY(),2)) < DISTANCE_THRESHOLD){
