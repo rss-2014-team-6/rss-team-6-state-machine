@@ -11,6 +11,7 @@ import rss_msgs.WaypointMsg;
 import rss_msgs.BumpMsg;
 import rss_msgs.BreakBeamMsg;
 import rss_msgs.SonarMsg;
+import rss_msgs.InitializedMsg;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
@@ -27,22 +28,20 @@ import java.lang.InterruptedException;
  */
 public class StateMachine extends AbstractNodeMain implements Runnable {
 
-    public Subscriber<PositionMsg> posSub;
+    private Subscriber<PositionMsg> posSub;
     //public Subscriber<WaypointMsg> waypointSub;
-    public Subscriber<BumpMsg> bumpSub;
-    public Subscriber<BreakBeamMsg> breakbeamSub;
-    public Subscriber<SonarMsg> sonarSub;
+    private Subscriber<BumpMsg> bumpSub;
+    private Subscriber<BreakBeamMsg> breakbeamSub;
+    private Subscriber<SonarMsg> sonarSub;
     
-    public Publisher<PositionTargetMsg> posTargMsgPub;
-    public Publisher<std_msgs.String> ctrlStatePub;
-    public Publisher<VelocityMsg> velPub;
-    
-    
-    //Probably should be changed to Waypoint..
-    public Publisher<PositionTargetMsg> motorsPub;
+    private Publisher<PositionTargetMsg> posTargMsgPub;
+    private Publisher<std_msgs.String> ctrlStatePub;
+    private Publisher<VelocityMsg> velPub;
+    private Publisher<InitializedMsg> initPub;
+    private Publisher<PositionTargetMsg> motorsPub;
 
     //temporarily output waypoints so we can see if the motors move --bhomberg
-    public Publisher<WaypointMsg> waypointPub;
+    private Publisher<WaypointMsg> waypointPub;
     //end hacky
     
     
@@ -92,8 +91,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		vmsg.setRotationVelocity(0);
 		velPub.publish(vmsg);
 		System.out.println("curr time: " + getTime());
-		if(getTime() >= 10000) // wait 10 seconds
+		if(getTime() >= 10000) { // wait 10 seconds
+                    InitializedMsg imsg = initPub.newMessage();
+                    imsg.setInitialized(true);
+                    initPub.publish(imsg);
 		    return spinState;
+                }
 		return this;
 	    }
 	};
@@ -203,6 +206,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	ctrlStatePub = node.newPublisher("/state/State", std_msgs.String._TYPE);
 	waypointPub = node.newPublisher("/path/Waypoint", "rss_msgs/WaypointMsg");
 	velPub = node.newPublisher("/state/Velocity", "rss_msgs/VelocityMsg");
+        initPub = node.newPublisher("/state/Initialized", "rss_msgs/InitializedMsg");
 	//rand = new Random();
 
 	//yay hacks to see if things work
