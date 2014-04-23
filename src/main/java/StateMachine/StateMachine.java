@@ -189,7 +189,23 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
       double startTheta = 0;
       final double SPIN_THRESHOLD = 0.5;
       @Override
-      public void handle(PositionMsg msg){ 
+      public void handle(PositionMsg msg){
+          if (!localized(msg)){
+              state = lost;
+              lastState = spin;
+              return;
+          }
+          if (timeToGoHome()){
+              state = driveBuildSite;
+              lastState = driveLost;
+              PositionTargetMsg targmsg = posTargMsgPub.newMessage();
+              targmsg.setX(0);
+              targmsg.setY(0);
+              targmsg.setTheta(0);
+              currGoal = targmsg;
+              posTargMsgPub.publish(targmsg);
+              return;
+          }
           if (spins == -1){
               startTheta = msg.getTheta();
           }
@@ -233,6 +249,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         @Override
         final double WANDER_THRESHOLD = 0.5;
         public void handle(PositionMsg msg){
+            if (!localized(msg)){
+                state = lost;
+                lastState = wander;
+                return;
+            }
             if (timeToGoHome()){
                 state = driveBuildSite;
                 lastState = driveLost;
@@ -290,6 +311,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         final double HOME_X = 0.0;
         final double HOME_Y = 0.0;
         public void handle(PositionMsg msg){
+            if (!localized(msg)){
+                state = driveLost;
+                lastState = driveBuildSite;
+                return;
+            }
             if (Math.sqrt(Math.pow(HOME_X - msg.getX(), 2) + Math.pow(HOME_Y - msg.getY(),2)) < DISTANCE_THRESHOLD){
                 state = buildEnter;
                 lastState = buildLost;
