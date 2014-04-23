@@ -20,6 +20,7 @@ import org.ros.node.Node;
 import org.ros.node.NodeMain;
 import org.ros.node.topic.Subscriber;
 
+import gui_msgs.GUIParticleCloudMsg;
 import gui_msgs.GUIPathMsg;
 import gui_msgs.GUIGraphMsg;
 import gui_msgs.PointDataMsg;
@@ -96,6 +97,11 @@ public class MapGUI extends SonarGUI implements NodeMain{
      * <p>Default color for {@link MapGUI.Graph}s.</p>
      **/
     public static final Color DEFAULT_GRAPH_COLOR = Color.GRAY;
+
+    /**
+     * <p>Default color for {@link MapGUI.ParticleCloud}s.</p>
+     **/
+    public static final Color DEFAULT_PARTICLE_CLOUD_COLOR = Color.GRAY;
 
     /**
      * <p>Whether to paint the rects.</p>
@@ -328,7 +334,7 @@ public class MapGUI extends SonarGUI implements NodeMain{
          * @param c color to set
          **/
         public void setColor(Color c) {
-            color = c;
+            color = dupColor(c);
         }
 
         /**
@@ -355,7 +361,7 @@ public class MapGUI extends SonarGUI implements NodeMain{
         Color color = DEFAULT_GRAPH_COLOR;
 
         /**
-         * <p>The GeneralPath represneting the visual graph in world coords.</p>
+         * <p>The GeneralPath representing the visual graph in world coords.</p>
          **/
         GeneralPath path = new GeneralPath();
 
@@ -385,7 +391,7 @@ public class MapGUI extends SonarGUI implements NodeMain{
          * @param c color to set
          **/
         public void setColor(Color c) {
-            color = c;
+            color = dupColor(c);
         }
 
         /**
@@ -399,6 +405,55 @@ public class MapGUI extends SonarGUI implements NodeMain{
             g2d.setColor(color);
 
             g2d.draw(path);
+        }
+    }
+
+    /**
+     * <p>A cloud of weighted particles.</p>
+     **/
+    protected class ParticleCloud extends Glyph {
+        /**
+         * <p>List of GUIPoint Glyphs defining this point cloud.
+         **/
+        List<GUIPoint> guiPoints = new ArrayList<GUIPoint>();
+
+        /**
+         * <p>Constructor, making an initially empty graph.</p>
+         **/
+        ParticleCloud() {}
+
+        /**
+         * <p>Update the particle cloud.</p>
+         *
+         * @param points points in the cloud
+         * @param weights negative log of weights for each point
+         **/
+        public void updateParticleCloud(List<Point2D.Double> points, double[] weights) {
+            guiPoints.clear();
+            if (points.size() != weights.length) {
+                throw new RuntimeException("points and weights lengths must match!");
+            }
+            for (int i = 0; i < points.size(); i++) {
+                Point2D.Double pt = points.get(i);
+                double weight = weights[i];
+                double red = Math.exp(-1 * weight);
+                // Color the point based on weight
+                GUIPoint guiPt = new GUIPoint(pt.x, pt.y, O_POINT, new Color((float)red, 0.0f, 0.0f));
+                guiPoints.add(guiPt);
+            }
+        }
+
+        /**
+         * <p>Paints the graph.</p>
+         *
+         * <p>Assumes line width is already set.</p>
+         *
+         * @param g2d the graphics context
+         **/
+        @Override public void paint(Graphics2D g2d) {
+            for (GUIPoint guiPt : points) {
+                guiPt.paint(g2d);
+            }
         }
     }
 
@@ -423,6 +478,11 @@ public class MapGUI extends SonarGUI implements NodeMain{
      * <p>The single {@link MapGUI.Graph}.</p>
      **/
     protected Graph graph = new Graph();
+
+    /**
+     * <p>The single {@link MapGUI.ParticleCloud}.</p>
+     **/
+    protected ParticleCloud cloud = new ParticleCloud();
 
     /**
      * <p>Consruct a new MapGUI.</p>
@@ -634,6 +694,7 @@ public class MapGUI extends SonarGUI implements NodeMain{
     private Subscriber<gui_msgs.GUIEraseMsg> guiEraseSub;
     private Subscriber<gui_msgs.GUIPathMsg> guiPathSub;
     private Subscriber<gui_msgs.GUIGraphMsg> guiGraphSub;
+    private Subscriber<gui_msgs.GUIParticleCloudMsg> guiLocSub;
 
     /**
      * Hook called by ROS to start the gui
@@ -674,6 +735,24 @@ public class MapGUI extends SonarGUI implements NodeMain{
                         map.put(sourcePt, targets);
                     }
                     graph.updateGraph(map);
+                }
+            });
+        guiLocSub = node.newSubscriber("gui/ParticleCloud", "gui_msgs/GUIParticleCloudMsg");
+        guiLocSub.addMessageListener(
+            new MessageListener<gui_msgs.GUIParticleCloudMsg>() {
+                @Override public void onNewMessage(gui_msgs.GUIParticleCloudMsg message) {
+                    List<PointDataMsg> points = message.getPoints();
+                    double[] weights = message.getWeights();
+                    List<Point2D.Double> convertedPoints = new ArrayList<Point2D.Double>();
+                    if (points.size() != weights.length) {
+                        throw new RuntimeException("points and weights length must match");
+                    }
+                    for (int i = 0; i < points.size(); i++) {
+                        PointDataMsg ptData = points.get(i);
+                        Point2D.Double pt = new Point2D.Double(ptData.getX(), ptData.getY());
+                        convertedPoints.add(pt);
+                    }
+                    cloud.updateParticleCloud(convertedPoints, weights);
                 }
             });
         super.onStart(node);
