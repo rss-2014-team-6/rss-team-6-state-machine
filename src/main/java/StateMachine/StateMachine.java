@@ -86,26 +86,24 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	    };*/
 
     private State startState = new State("start"){
-	    @Override
-		public State handle (BumpMsg msg){
+	    @Override public State handle (BumpMsg msg){
 		VelocityMsg vmsg = velPub.newMessage();
 		vmsg.setTranslationVelocity(0);
 		vmsg.setRotationVelocity(0);
 		velPub.publish(vmsg);
-		System.out.println("starttime: " + startTime + "curr time: " + getTime());
-		if(getTime() >= 20000) // wait 30 seconds
+		System.out.println("curr time: " + getTime());
+		if(getTime() >= 10000) // wait 10 seconds
 		    return spinState;
 		return this;
 	    }
 	};
     
     private State spinState = new State ("spin"){
-	    @Override
-		public State handle(BumpMsg msg){
-		if(getTime() <= 50000){ // spin for 30 s
+	    @Override public State handle(BumpMsg msg){
+		if(getTime() <= 40000){ // spin for 30 s
 		    VelocityMsg vmsg = velPub.newMessage();
-		    vmsg.setTranslationVelocity(.25);
-		    vmsg.setRotationVelocity(0);
+		    vmsg.setTranslationVelocity(0);
+		    vmsg.setRotationVelocity(2.0);
 		    velPub.publish(vmsg);
 		    return this;
 		}
@@ -114,11 +112,33 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    vmsg.setTranslationVelocity(0);
 		    vmsg.setRotationVelocity(0);
 		    velPub.publish(vmsg);
-		    return stopState;
+                    System.out.println("Transition to goal state");
+		    return goalState;
 		}
 
 	    }
 	};
+
+    private State goalState = new State("goal"){
+            @Override public State handle(BumpMsg msg){
+                System.out.println("Goal state");
+                PositionTargetMsg posTargMsg = posTargMsgPub.newMessage();
+                posTargMsg.setX(-0.1);
+                posTargMsg.setY(3.6);
+                posTargMsg.setTheta(-1);
+                posTargMsgPub.publish(posTargMsg);
+                currGoal = posTargMsg;
+                return this;
+            }
+            @Override public State handle(PositionMsg msg){
+                final double GOAL_THRESH = 0.03;
+                if (dist(msg) < GOAL_THRESH) {
+                    System.out.println("Reached goal!");
+                    return stopState;
+                }
+                return this;
+            }
+        };
 
     private State stopState = new State("stop"){
 	};
@@ -129,68 +149,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private int count;
    
-
-    public void handle(PositionMsg odo){
-	currState = currState.handle(odo);
-	
-	
-        /*if(dist(odo) < ACCEPTABLE_ERROR){
-            PositionTargetMsg msg = posTargMsgPub.newMessage();
-            msg.setX(Math.random()*5.0);
-            msg.setY(Math.random()*5.0);
-            posTargMsgPub.publish(msg);
-            currGoal = msg;
-        
-        }
-        System.out.println("odo message handled x: " + odo.getX() + 
-                                                "  y: " + odo.getY() + 
-                                                "  theta: " + odo.getTheta());*/
-    }
-    
-    public void handle(WaypointMsg way){
-	currState = currState.handle(way);
-        /*System.out.println("waypoint message handled x: " + way.getX() +
-                                                        "  y: " + way.getY() +
-                                                        "  theta: " + way.getTheta());*/
-        //send waypoint since motion isn't updated yet and I don't know what it's going to be
-        /**
-        PositionTargetMsg msg = motorsPub.newMessage();
-        msg.setX(way.getX());
-        msg.setY(way.getY());
-        msg.setTheta(way.getTheta());
-        motorsPub.publish(msg);
-	*/
-        //end hacks
-    }
-    
-    public void handle(BumpMsg bump){
-	currState = currState.handle(bump);
-        /*System.out.println("bump message handled");
-	count++;
-
-	if(count >= 20){
-	    PositionTargetMsg msg = posTargMsgPub.newMessage();
-	    msg.setX(-0.1524);
-	    msg.setY(3.6576);
-	    //msg.setX(rand.nextDouble()*3 - 0.5);
-	    //msg.setY(rand.nextDouble()*4.5 - 0.5);
-	    msg.setTheta(-1);
-	    posTargMsgPub.publish(msg);
-	    count = 0;
-	    }*/
-    }
-    public void handle(BreakBeamMsg bbeam){
-        currState = currState.handle(bbeam);
-	//System.out.println("bbeam handled");
-    }
-    public void handle(SonarMsg sonar){
-	currState = currState.handle(sonar);
-        //System.out.println("sonar handled");
-    }
     public double dist(PositionMsg odo){
 	// not sure how you want to deal with this more nicely, this is hackish --bhomberg
 	if(currGoal == null)
-	    return -1;
+	    return Double.POSITIVE_INFINITY;
         return Math.sqrt(Math.pow(odo.getX() - currGoal.getX(), 2) + 
                             Math.pow(odo.getY() - currGoal.getY(), 2));
         
@@ -217,6 +179,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	    }*/
     }
     
+    /**
+     * Get time since start of execution in ms.
+     */
     public long getTime(){
         return System.currentTimeMillis() - startTime;
     }
@@ -250,7 +215,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         posSub.addMessageListener(new MessageListener<rss_msgs.PositionMsg>() {
             @Override
 	    public void onNewMessage(rss_msgs.PositionMsg message) {
-                handle(message);
+                currState = currState.handle(message);
             }
         });
     
@@ -270,7 +235,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         bumpSub.addMessageListener(new MessageListener<rss_msgs.BumpMsg>(){
             @Override
             public void onNewMessage(rss_msgs.BumpMsg message){
-                handle(message);
+                currState = currState.handle(message);
                 //System.out.println("State Machine got a bump");
                 
             }
@@ -280,7 +245,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         breakbeamSub.addMessageListener(new MessageListener<rss_msgs.BreakBeamMsg>() {
             @Override
             public void onNewMessage(rss_msgs.BreakBeamMsg message){
-                handle(message);
+                currState = currState.handle(message);
                 //System.out.println("State Machine got a broken beam");
             }
         });
@@ -289,7 +254,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         sonarSub.addMessageListener(new MessageListener<rss_msgs.SonarMsg>(){
             @Override
             public void onNewMessage(rss_msgs.SonarMsg message){
-                handle(message);
+                currState = currState.handle(message);
                 //System.out.println("State Machine got a sonar (or a few)");
             }
         });
