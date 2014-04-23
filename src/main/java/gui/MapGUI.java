@@ -433,6 +433,7 @@ public class MapGUI extends SonarGUI implements NodeMain{
             if (points.size() != weights.length) {
                 throw new RuntimeException("points and weights lengths must match!");
             }
+            /*
             double maxConvertedWeight = 0.0;
             for (int i = 0; i < weights.length; i++) {
                 double converted = Math.exp(-1 * weights[i]);
@@ -440,10 +441,19 @@ public class MapGUI extends SonarGUI implements NodeMain{
                     maxConvertedWeight = converted;
                 }
             }
+            */
+            double maxWeight = 0.0;
+            for (int i = 0; i < weights.length; i++) {
+                if (weights[i] > maxWeight) {
+                    maxWeight = weights[i];
+                }
+            }
+            
             for (int i = 0; i < points.size(); i++) {
                 Point2D.Double pt = points.get(i);
                 double weight = weights[i];
-                double red = Math.exp(-1 * weight) / maxConvertedWeight; // scaled
+                //double red = Math.exp(-1 * weight) / maxConvertedWeight; // scaled
+                double red = (maxWeight - weight) / maxWeight;
                 System.out.println("Point: " + pt + ", color: " + red + ", weight: " + weight);
                 // Color the point based on weight
                 GUIPoint guiPt = new GUIPoint(pt.x, pt.y, O_POINT, new Color((float)red, 0.0f, 0.0f));
