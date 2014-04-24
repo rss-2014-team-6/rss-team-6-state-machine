@@ -213,7 +213,6 @@ public class SonarGUI extends VisionGUI {
 		 **/
 		@Override
 		public void paint(Graphics2D g2d) {
-                    System.out.println("Paint point: " + color);
 			g2d.setColor(color);
 			for (int i = 0; i < shape.length; i++) {
 				g2d.draw(shape[i]);

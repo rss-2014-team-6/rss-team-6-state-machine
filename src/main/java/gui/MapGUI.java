@@ -454,7 +454,6 @@ public class MapGUI extends SonarGUI implements NodeMain{
                 double weight = weights[i];
                 //double red = Math.exp(-1 * weight) / maxConvertedWeight; // scaled
                 double red = (maxWeight - weight) / maxWeight;
-                System.out.println("Point: " + pt + ", color: " + red + ", weight: " + weight);
                 // Color the point based on weight
                 GUIPoint guiPt = new GUIPoint(pt.x, pt.y, O_POINT, new Color((float)red, 0.0f, 0.0f));
                 guiPoints.add(guiPt);
@@ -470,7 +469,6 @@ public class MapGUI extends SonarGUI implements NodeMain{
             setLineWidth(g2d, POINT_LINE_WIDTH);
 
             for (GUIPoint guiPt : guiPoints) {
-                System.out.println("Paint point: " + guiPt + ", color: " + guiPt.color);
                 guiPt.paint(g2d);
             }
         }
