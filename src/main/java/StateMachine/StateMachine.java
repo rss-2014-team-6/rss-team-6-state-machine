@@ -246,11 +246,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
            ctrlStatePub.publish(ctrlState);
            
            WaypointMsg way = waypointPub.newMessage();
-           way.setX(myX + msg.getBearing()*Math.cos(msg.getTheta()));
-           way.setY(myY + msg.getBearing()*Math.sin(msg.getTheta()));
+           way.setX(myX + msg.getBearing()*Math.cos(msg.getTheta())); //aim a bit behind the block? 
+           way.setY(myY + msg.getBearing()*Math.sin(msg.getTheta())); 
            way.setTheta(-1);
            waypointPub.publish(way);
            currGoal = way;
+           //check if it's the same block
            //check if ball is no longer in frame, drive forward extra x feet, return to previous state
            
        }
