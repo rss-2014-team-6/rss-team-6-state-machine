@@ -55,6 +55,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private long startTime;
     
+    private double myX;
+    private double myY;
+    private double myTheta;
+    
     private int age;
     //private int state;
     
@@ -218,20 +222,30 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private State visualServo = new State("visualServo"){
        @Override
+       private final double PICKUP_THRESHOLD = .02;
        public void handle(BallLocationMsg msg){
            std_msgs.String ctrlState = ctrlStatePub.newMessage();
            ctrlState.setData("visualServo");
            ctrlStatePub.publish(ctrlState);
            
-           BallLocationMsg ballMsg = ballLocationPub.newMessage();
-           
-           ballMsg.setRange(0);
-           ballMsg.setBearing(0);
-           ballLocationPub.publish(ballMsg);
-           
+           WaypointMsg way = waypointPub.newMessage();
+           way.setX(myX + msg.getBearing()*Math.cos(msg.getTheta()));
+           way.setY(myY + msg.getBearing()*Math.sin(msg.getTheta()));
+           way.setTheta(-1);
+           waypointPub.publish(way);
+           currGoal = way;
            //check if ball is no longer in frame, drive forward extra x feet, return to previous state
            
        }
+       
+       public void handle(PositionMsg msg){
+           if(distance(msg) < PICKUP_THRESHOLD){
+               state = lastState;
+               lastState = 
+           }
+       }
+       
+       
     };
     
     private State wander = new State("wander"){
@@ -360,8 +374,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
     public void handle(PositionMsg odo){
         //IMPLEMENT_STATES
-        //state.handle(odo);
-       
+        /**
+        myX = odo.getX();
+        myY = odo.getY();
+        myTheta = odo.getTheta();
+        state.handle(odo);
+       **/
         if(dist(odo) < ACCEPTABLE_ERROR){
             PositionTargetMsg msg = posTargMsgPub.newMessage();
             msg.setX(Math.random()*5.0);
@@ -461,7 +479,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	
 	posTargMsgPub = node.newPublisher("/state/PositionTarget", "rss_msgs/PositionTargetMsg");
 	ctrlStatePub = node.newPublisher("/state/State", std_msgs.String._TYPE);
-	waypointPub = node.newPublisher("/path/Waypoint", "rss_msgs/WaypointMsg");
+	waypointPub = node.newPublisher("/state/Waypoint", "rss_msgs/WaypointMsg");
 
 	velPub = node.newPublisher("/state/Velocity", "rss_msgs/VelocityMsg");
         initPub = node.newPublisher("/state/Initialized", "rss_msgs/InitializedMsg");
