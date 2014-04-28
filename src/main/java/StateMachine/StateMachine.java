@@ -3,7 +3,12 @@ package StateMachine;
 //import java.util.Arrays;
 //import java.util.concurrent.ArrayBlockingQueue;
 
+import map.CSpace;
+import map.PolygonMap;
+import map.PolygonObstacle;
+
 import org.ros.message.MessageListener;
+
 import rss_msgs.PositionMsg;
 import rss_msgs.VelocityMsg;
 import rss_msgs.PositionTargetMsg;
@@ -13,13 +18,20 @@ import rss_msgs.BreakBeamMsg;
 import rss_msgs.SonarMsg;
 import rss_msgs.InitializedMsg;
 import rss_msgs.BallLocationMsg;
+import rss_msgs.MapMsg;
+
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
 import org.ros.node.Node;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
+
 import java.util.Random;
+import java.awt.geom.Point2D;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.lang.InterruptedException;
 
 /**
@@ -35,6 +47,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private Subscriber<BreakBeamMsg> breakbeamSub;
     private Subscriber<SonarMsg> sonarSub;
     private Subscriber<BallLocationMsg> ballLocationSub;
+    private Subscriber<MapMsg> mapSub;
     
     private Publisher<PositionTargetMsg> posTargMsgPub;
     private Publisher<std_msgs.String> ctrlStatePub;
@@ -42,6 +55,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private Publisher<InitializedMsg> initPub;
     private Publisher<PositionTargetMsg> motorsPub;
     private Publisher<BallLocationMsg> ballLocationPub;
+    
 
     //temporarily output waypoints so we can see if the motors move --bhomberg
     private Publisher<WaypointMsg> waypointPub;
@@ -51,7 +65,13 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private PositionTargetMsg currGoal;
     private WaypointMsg currWaypoint;
     
+    private CSpace cSpace;
+    private PolygonMap map;
+    
     private final double ACCEPTABLE_ERROR = 0.05;
+    private static final double ROBOT_RADIUS = 0.3;
+    private final double HOME_X = 0.0;
+    private final double HOME_Y = 0.0;
     
     private long startTime;
     
@@ -178,9 +198,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     };
     
     private State spin = new State("spin"){
-      int spins = -1;
-      double startTheta = 0;
-      final double SPIN_THRESHOLD = 0.5;
+      private long spins_start = -1;
+      private final long SPIN_TIME = 5000;
       @Override
       public void handle(PositionMsg msg){
           if (!localized(msg)){
@@ -192,23 +211,20 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
               state = driveBuildSite;
               lastState = driveLost;
               PositionTargetMsg targmsg = posTargMsgPub.newMessage();
-              targmsg.setX(0);
-              targmsg.setY(0);
-              targmsg.setTheta(0);
+              targmsg.setX(HOME_X);
+              targmsg.setY(HOME_Y);
+              targmsg.setTheta(-1);
               currGoal = targmsg;
               posTargMsgPub.publish(targmsg);
               return;
           }
-          if (spins == -1){
-              startTheta = msg.getTheta();
+          if (spins_start == -1){
+              spins_start = getTime();
           }
-          if ((msg.getTheta() - startTheta)%360 < SPIN_THRESHOLD){ //probs a better way to do this
-              spins++;   
-          }
-          if (spins > 2){
-              state = wander;
-              lastState = this; 
-              publishWander();
+          if (getTime() - spins_start > SPIN_TIME){ 
+                state = wander;
+                lastState = this;
+                publishWander();
           }
       }
       
@@ -216,6 +232,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
       public void handle(BallLocationMsg msg){
           state = visualServo;
           lastState = this;
+          state.handle(msg);
                   
       }
     };
@@ -241,7 +258,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
        public void handle(PositionMsg msg){
            if(distance(msg) < PICKUP_THRESHOLD){
                state = lastState;
-               lastState = 
+               lastState = lost;
            }
        }
        
@@ -262,32 +279,28 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                 state = driveBuildSite;
                 lastState = driveLost;
                 PositionTargetMsg targmsg = posTargMsgPub.newMessage();
-                targmsg.setX(0);
-                targmsg.setY(0);
-                targmsg.setTheta(0);
+                targmsg.setX(HOME_X);
+                targmsg.setY(HOME_Y);
+                targmsg.setTheta(-1);
                 currGoal = targmsg;
                 posTargMsgPub.publish(targmsg);
                 return;
             }
             
             if(Math.sqrt(Math.pow(msg.getX() - currGoal.getX(), 2) + Math.pow(msg.getY() - currGoal.getY(), 2))< WANDER_THRESHOLD){
-                publishWander();
+                state = spin;
+                lastState = lost;
             }
         }
         
         public void handle(BallLocationMsg msg){
             state = visualServo;
             lastState = this;
+            state.handle(msg);
         }
     };
     
-    private void publishWander(){
-        PositionTargetMsg msg = posTargMsgPub.newMessage();
-        msg.setX(Math.random()*3 - .5);
-        msg.setY(Math.random()*4.5 - .5);
-        currGoal = msg;
-        posTargMsgPub.publish(msg);    
-    }
+   
     
     /**
      * States for Drive to build site
@@ -310,9 +323,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     };
     
     private State driveBuildSite = new State("driveBuildSite"){
-        final double DISTANCE_THRESHOLD = 0.5;
-        final double HOME_X = 0.0;
-        final double HOME_Y = 0.0;
+        final double HOME_THRESHOLD = 0.5;
 
         @Override
         public void handle(PositionMsg msg){
@@ -321,7 +332,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                 lastState = this;
                 return;
             }
-            if (Math.sqrt(Math.pow(HOME_X - msg.getX(), 2) + Math.pow(HOME_Y - msg.getY(),2)) < DISTANCE_THRESHOLD){
+            if (Math.sqrt(Math.pow(HOME_X - msg.getX(), 2) + Math.pow(HOME_Y - msg.getY(),2)) < HOME_THRESHOLD){
                 state = buildEnter;
                 lastState = buildLost;
             }
@@ -362,7 +373,25 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         return getTime() > WANDER_TIME;
     }
 
-    
+    private void publishWander(){
+        boolean validGoal = false;
+        PositionTargetMsg msg = posTargMsgPub.newMessage();
+        
+        while(!validGoal){
+            validGoal = true;
+            msg.setX(Math.random()*3 - .5);
+            msg.setY(Math.random()*4.5 - .5);
+            Point2D.Double goal = new Point2D.Double(msg.getX(), msg.getY());
+            for (PolygonObstacle obs : cSpace.getObstacles()){
+                if(obs.contains(goal)){
+                    validGoal = false;
+                }
+            }    
+        }
+        
+        currGoal = msg;
+        posTargMsgPub.publish(msg);    
+    }
 ///////////////////////////////////////////////////////////////////////////////////////////////end States
     
     
@@ -372,6 +401,33 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
    
 ////////////////////////////////////////////////////////////////////////////////handlers
 
+    private void handleMapMsg(MapMsg msg) {
+        try {
+            byte[] ba = msg.getSerializedMap().array();
+            ByteArrayInputStream byteStream = new ByteArrayInputStream(ba);
+            // Skip the 4-byte length header
+            byteStream.skip(4);
+            
+            ObjectInputStream stream = new ObjectInputStream(byteStream);
+
+            map = (PolygonMap) stream.readObject();
+            stream.close();
+        System.out.println("Initialized");
+            initialized = true;
+            cSpace = new CSpace(map.getObstacles(), ROBOT_RADIUS);
+        }
+        catch (IOException e) {
+        throw new RuntimeException ("IOException in handleMapMsg");
+            //e.printStackTrace();
+            //return;
+        }
+        catch (ClassNotFoundException e) {
+        throw new RuntimeException ("ClassNotFoundException in handleMapMsg");
+            //e.printStackTrace();
+            //return;
+        }
+    }
+    
     public void handle(PositionMsg odo){
         //IMPLEMENT_STATES
         /**
@@ -554,6 +610,14 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
             public void onNewMessage(rss_msgs.BallLocationMsg message){
                 state.handle(message);
                 System.out.println("State Machine got a ball location message");
+            }
+        });
+        
+        mapSub = node.newSubscriber("/loc/Map", "rss_msgs/MapMsg");
+        mapSub.addMessageListener(new MessageListener<MapMsg>() {
+            @Override
+            public void onNewMessage(MapMsg msg) {
+                handleMapMsg(msg);
             }
         });
         
