@@ -171,7 +171,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     
     private State example = new State ("example"){
-      @Override
+      @Override 
       public void handle (PositionMsg msg){
           System.out.println("I'm an overwritten state handler for pose");
       }
@@ -237,27 +237,27 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
       }
     };
     
-    private State visualServo = new State("visualServo"){
-       @Override
+    private State visualServo = new State("visualServo"){      
        private final double PICKUP_THRESHOLD = .02;
+       @Override
        public void handle(BallLocationMsg msg){
            std_msgs.String ctrlState = ctrlStatePub.newMessage();
            ctrlState.setData("visualServo");
            ctrlStatePub.publish(ctrlState);
            
            WaypointMsg way = waypointPub.newMessage();
-           way.setX(myX + msg.getBearing()*Math.cos(msg.getTheta())); //aim a bit behind the block? 
-           way.setY(myY + msg.getBearing()*Math.sin(msg.getTheta())); 
+           way.setX(myX + msg.getRange()*Math.cos(msg.getBearing())); //aim a bit behind the block? 
+           way.setY(myY + msg.getRange()*Math.sin(msg.getBearing())); 
            way.setTheta(-1);
            waypointPub.publish(way);
-           currGoal = way;
+           currWaypoint = way;
            //check if it's the same block
            //check if ball is no longer in frame, drive forward extra x feet, return to previous state
            
        }
        
        public void handle(PositionMsg msg){
-           if(distance(msg) < PICKUP_THRESHOLD){
+           if(Math.sqrt(Math.pow(currWaypoint.getX() - msg.getX(), 2) + Math.pow(currWaypoint.getY() - msg.getY(), 2)) < PICKUP_THRESHOLD){
                state = lastState;
                lastState = lost;
            }
@@ -288,7 +288,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                 return;
             }
             
-            if(Math.sqrt(Math.pow(msg.getX() - currGoal.getX(), 2) + Math.pow(msg.getY() - currGoal.getY(), 2))< WANDER_THRESHOLD){
+            if(dist(msg) < WANDER_THRESHOLD){
                 state = spin;
                 lastState = lost;
             }
@@ -413,8 +413,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
             map = (PolygonMap) stream.readObject();
             stream.close();
-        System.out.println("Initialized");
-            initialized = true;
+       
             cSpace = new CSpace(map.getObstacles(), ROBOT_RADIUS);
         }
         catch (IOException e) {
