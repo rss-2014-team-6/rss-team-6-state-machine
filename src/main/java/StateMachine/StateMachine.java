@@ -42,7 +42,7 @@ import java.lang.InterruptedException;
 public class StateMachine extends AbstractNodeMain implements Runnable {
 
     private Subscriber<PositionMsg> posSub;
-    //public Subscriber<WaypointMsg> waypointSub;
+    public Subscriber<WaypointMsg> waypointSub;
     private Subscriber<BumpMsg> bumpSub;
     private Subscriber<BreakBeamMsg> breakbeamSub;
     private Subscriber<SonarMsg> sonarSub;
@@ -57,9 +57,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private Publisher<BallLocationMsg> ballLocationPub;
     
 
-    //temporarily output waypoints so we can see if the motors move --bhomberg
+    
     private Publisher<WaypointMsg> waypointPub;
-    //end hacky
+    
     
     
     private PositionTargetMsg currGoal;
@@ -79,28 +79,6 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private double myY;
     private double myTheta;
     
-    private int age;
-    //private int state;
-    
-    /* private final int ERROR = -1;
-    //overall time sections
-    private final int GATHER = 1;
-    private final int HOMEWARD = 2;
-    private final int CONSTRUCT = 3;
-    //gather states
-    private final int LOST = 10;
-    private final int VISUAL_SERVO = 11;
-    private final int FIND_BLOCK = 12; //spin on state diagram pic
-    private final int DRIVE_NEW_LOC = 13;
-    //drive to build site states
-    private final int DLOST = 20;
-    private final int DRIVE_BUILD_SITE = 21;
-    //build states
-    private final int BLOST = 30;
-    private final int BUILD1 = 31;
-    private final int BUILD2 = 32;
-    private final int BUILD3 = 33;
-    private final int DRIVE_BUILD = 34; //drive to next place to build a tower*/
 
     private State startState = new State("start"){
 	    @Override public void handle (BumpMsg msg){
@@ -170,13 +148,6 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private State state;
     
     
-    private State example = new State ("example"){
-      @Override 
-      public void handle (PositionMsg msg){
-          System.out.println("I'm an overwritten state handler for pose");
-      }
-    };
-    
     /**
      * States for Gather phase:
      * lost - find yourself. Only goes to whatever you were doing last/spin
@@ -200,6 +171,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private State spin = new State("spin"){
       private long spins_start = -1;
       private final long SPIN_TIME = 5000;
+      
       @Override
       public void handle(PositionMsg msg){
           if (!localized(msg)){
@@ -223,7 +195,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
           }
           if (getTime() - spins_start > SPIN_TIME){ 
                 state = wander;
-                lastState = this;
+                lastState = lost;
                 publishWander();
           }
       }
@@ -242,35 +214,30 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
        @Override
        public void handle(BallLocationMsg msg){
 
-	   // not sure why this is here, given that we're making the visual servoing happen
-	   // from the high level control rather than in the the control module
-	   // RobotPositionController doesn't do anything different in VisualServo state...
-	   // also do we need to turn off path planning to make sure it doesn't send conflicting
-	   // waypoints?
+	   
            
            WaypointMsg way = waypointPub.newMessage();
-	   // I switched this to be in global coordinates since waypoint messages need to be
-	   // in global coordinates
-	   // also, myX, myY, and myTheta aren't set anywhere currently.  
-	   Point2D.Double extension = new Point2D.Double(msg.getRange()*Math.cos(msg.getBearing()), msg.getRange()*Math.sin(msg.getBearing()));
-	   Point2D.Double waypt = localToGlobal(myX, myY, myTheta, extension);
-	   way.setX(waypt.getX()); //aim a bit behind the block? 
+	   
+           Point2D.Double extension = new Point2D.Double(msg.getRange()*Math.cos(msg.getBearing()), msg.getRange()*Math.sin(msg.getBearing()));
+	       Point2D.Double waypt = localToGlobal(myX, myY, myTheta, extension);
+	       way.setX(waypt.getX()); //aim a bit behind the block? 
            way.setY(waypt.getY()); 
            way.setTheta(-1);
            waypointPub.publish(way);
            currWaypoint = way;
            //check if it's the same block
-           //check if ball is no longer in frame, drive forward extra x feet, return to previous state
+           
            
        }
 
 
-    private Point2D.Double localToGlobal(double x, double y, double theta, Point2D.Double loc){
-	double xpos = x + loc.getX() * Math.cos(theta) - loc.getY() * Math.sin(theta);
-	double ypos = y + loc.getX() * Math.sin(theta) + loc.getY() * Math.cos(theta);
-	return new Point2D.Double(xpos, ypos);
-    }	    
-
+       private Point2D.Double localToGlobal(double x, double y, double theta, Point2D.Double loc){
+           double xpos = x + loc.getX() * Math.cos(theta) - loc.getY() * Math.sin(theta);
+           double ypos = y + loc.getX() * Math.sin(theta) + loc.getY() * Math.cos(theta);
+           return new Point2D.Double(xpos, ypos);
+       }
+       
+       @Override
        public void handle(PositionMsg msg){
            if(Math.sqrt(Math.pow(currWaypoint.getX() - msg.getX(), 2) + Math.pow(currWaypoint.getY() - msg.getY(), 2)) < PICKUP_THRESHOLD){
                state = lastState;
@@ -309,10 +276,16 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
             }
         }
         
+        @Override 
         public void handle(BallLocationMsg msg){
             state = visualServo;
             lastState = this;
             state.handle(msg);
+        }
+        
+        @Override
+        public void handle(WaypointMsg msg){
+            waypointPub.publish(msg);
         }
     };
     
@@ -348,11 +321,17 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                 lastState = this;
                 return;
             }
-            if (Math.sqrt(Math.pow(HOME_X - msg.getX(), 2) + Math.pow(HOME_Y - msg.getY(),2)) < HOME_THRESHOLD){
+            if (dist(msg) < HOME_THRESHOLD){
                 state = buildEnter;
                 lastState = buildLost;
             }
         }
+        
+        @Override 
+        public void handle(WaypointMsg msg){
+            waypointPub.publish(msg);
+        }
+        
     };
     
     /**
@@ -445,93 +424,42 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     public void handle(PositionMsg odo){
         //IMPLEMENT_STATES
-        /**
         myX = odo.getX();
         myY = odo.getY();
         myTheta = odo.getTheta();
         state.handle(odo);
-       **/
-        if(dist(odo) < ACCEPTABLE_ERROR){
-            PositionTargetMsg msg = posTargMsgPub.newMessage();
-            msg.setX(Math.random()*5.0);
-            msg.setY(Math.random()*5.0);
-            posTargMsgPub.publish(msg);
-            currGoal = msg;
-        
-        }
-        System.out.println("odo message handled x: " + odo.getX() + 
-                                                "  y: " + odo.getY() + 
-                                                "  theta: " + odo.getTheta());
+       
+       
     }
     
     public void handle(WaypointMsg way){
         //IMPLEMENT_STATES
-        //state.handle(way);
+        state.handle(way);
         
-        System.out.println("waypoint message handled x: " + way.getX() +
-                                                        "  y: " + way.getY() +
-                                                        "  theta: " + way.getTheta());
-        //send waypoint since motion isn't updated yet and I don't know what it's going to be
-        /**
-        PositionTargetMsg msg = motorsPub.newMessage();
-        msg.setX(way.getX());
-        msg.setY(way.getY());
-        msg.setTheta(way.getTheta());
-        motorsPub.publish(msg);
-	*/
-        //end hacks
     }
     
     public void handle(BumpMsg bump){
         //IMPLEMENT_STATES
-        //state.handle(bump);
-        
-        System.out.println("bump message handled");
-	count++;
-
-	if(count >= 20){
-	    PositionTargetMsg msg = posTargMsgPub.newMessage();
-	    msg.setX(-0.1524);
-	    msg.setY(3.6576);
-	    //msg.setX(rand.nextDouble()*3 - 0.5);
-	    //msg.setY(rand.nextDouble()*4.5 - 0.5);
-	    msg.setTheta(-1);
-	    posTargMsgPub.publish(msg);
-	    count = 0;
-	}
+        state.handle(bump);
+       
     }
     public void handle(BreakBeamMsg bbeam){
          //IMPLEMENT_STATES
-        //state.handle(bbeam);
-        System.out.println("bbeam handled");
+        state.handle(bbeam);
+       
     }
     public void handle(SonarMsg sonar){
         //IMPLEMENT_STATES
-        //state.handle(sonar);
-        System.out.println("sonar handled");
+        state.handle(sonar);
+       
     }
 ////////////////////////////////////////////////////////////////////////////////end handlers
    
 
     @Override
     public void run() {
-        /*while (true) {
-	    System.out.println("In SM run loop");
 	    //this used to do visiony things, idk what it's supposed to do now. 
-	    
-	    // testing -- output new random waypoints every 2 seconds --bhomberg
-	    try{
-		Thread.sleep(2000);
-	    } catch (InterruptedException e) {
-		System.out.println("Thread sleeping is sadface. :( ");
-	    }
-
-	    WaypointMsg msg = waypointPub.newMessage();
-	    msg.setX(rand.nextDouble()*10);
-	    msg.setY(rand.nextDouble()*10);
-	    msg.setTheta(-1);
-	    waypointPub.publish(msg);
-	    }*/
+	   
     }
     
     
@@ -559,11 +487,6 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	ballLocationPub = node.newPublisher("/state/BallLocation", "rss_msgs/BallLocationMsg");
 
 
-	//yay hacks to see if things work
-	
-	//	motorsPub = node.newPublisher("command/Motors", "rss_msgs/PositionTargetMsg");
-	
-	//end hacks
 
         posSub = node.newSubscriber("/loc/Position", "rss_msgs/PositionMsg");
         posSub.addMessageListener(new MessageListener<rss_msgs.PositionMsg>() {
@@ -575,14 +498,14 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     
     
-        /*waypointSub = node.newSubscriber("/path/Waypoint", "rss_msgs/WaypointMsg");
+        waypointSub = node.newSubscriber("/path/Waypoint", "rss_msgs/WaypointMsg");
         waypointSub.addMessageListener(new MessageListener<rss_msgs.WaypointMsg>(){
             @Override
             public void onNewMessage(rss_msgs.WaypointMsg message){
                 handle(message);
                 System.out.println("State Machine got a waypoint");
         }
-        });*/
+        });
         
         
         bumpSub = node.newSubscriber("/sense/Bump", "rss_msgs/BumpMsg");
@@ -619,7 +542,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         //count = 0; // for testing --bhomberg
 
         
-        ballLocationSub = node.newSubscriber("/vis/BallLocation", "rss_msgs/BallLocationMsg");
+        ballLocationSub = node.newSubscriber("/vision/BallLocation", "rss_msgs/BallLocationMsg");
         ballLocationSub.addMessageListener(new MessageListener<rss_msgs.BallLocationMsg>() {
             @Override
             public void onNewMessage(rss_msgs.BallLocationMsg message){
