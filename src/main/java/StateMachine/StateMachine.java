@@ -3,9 +3,9 @@ package StateMachine;
 //import java.util.Arrays;
 //import java.util.concurrent.ArrayBlockingQueue;
 
-import map.CSpace;
-import map.PolygonMap;
-import map.PolygonObstacle;
+import path_planning.map.CSpace;
+import path_planning.map.PolygonMap;
+import path_planning.map.PolygonObstacle;
 
 import org.ros.message.MessageListener;
 
