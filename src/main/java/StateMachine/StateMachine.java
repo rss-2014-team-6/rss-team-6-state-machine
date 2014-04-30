@@ -19,7 +19,7 @@ import rss_msgs.SonarMsg;
 import rss_msgs.InitializedMsg;
 import rss_msgs.BallLocationMsg;
 import rss_msgs.MapMsg;
-
+	import rss_msgs.OdometryMsg;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
@@ -29,6 +29,7 @@ import org.ros.node.topic.Subscriber;
 
 import java.util.Random;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -60,7 +61,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private Publisher<WaypointMsg> waypointPub;
     
-    
+    	private Publisher<PositionMsg> posPub;
+	private Subscriber<OdometryMsg> odoSub;
     
     private PositionTargetMsg currGoal;
     private WaypointMsg currWaypoint;
@@ -91,7 +93,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                     InitializedMsg imsg = initPub.newMessage();
                     imsg.setInitialized(true);
                     initPub.publish(imsg);
-                    state = spinState;
+		    publishWander();
+                    state = spin;
                     lastState = this;
                 }
 	    }
@@ -192,8 +195,18 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
           }
           if (spins_start == -1){
               spins_start = getTime();
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(0);
+		    vmsg.setRotationVelocity(2.0);
+		    velPub.publish(vmsg);
+
           }
           if (getTime() - spins_start > SPIN_TIME){ 
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(0);
+		    vmsg.setRotationVelocity(0);
+		    velPub.publish(vmsg);
+		spins_start = -1;
                 state = wander;
                 lastState = lost;
                 publishWander();
@@ -220,8 +233,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	   
            Point2D.Double extension = new Point2D.Double(msg.getRange()*Math.cos(msg.getBearing()), msg.getRange()*Math.sin(msg.getBearing()));
 	       Point2D.Double waypt = localToGlobal(myX, myY, myTheta, extension);
-	       way.setX(waypt.getX()); //aim a bit behind the block? 
-           way.setY(waypt.getY()); 
+	       way.setX(myX + msg.getRange()*Math.cos(myTheta + msg.getBearing())); //aim a bit behind the block? 
+           way.setY(myY + msg.getRange()*Math.sin(myTheta + msg.getBearing())); 
            way.setTheta(-1);
            waypointPub.publish(way);
            currWaypoint = way;
@@ -249,7 +262,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     };
     
     private State wander = new State("wander"){
-        final double WANDER_THRESHOLD = 0.5;
+        final double WANDER_THRESHOLD = 0.05;
 
         @Override
         public void handle(PositionMsg msg){
@@ -269,7 +282,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                 posTargMsgPub.publish(targmsg);
                 return;
             }
-            
+            posTargMsgPub.publish(currGoal);
             if(dist(msg) < WANDER_THRESHOLD){
                 state = spin;
                 lastState = lost;
@@ -371,21 +384,28 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private void publishWander(){
         boolean validGoal = false;
         PositionTargetMsg msg = posTargMsgPub.newMessage();
-        
-        while(!validGoal){
-            validGoal = true;
-            msg.setX(Math.random()*3 - .5);
-            msg.setY(Math.random()*4.5 - .5);
-            Point2D.Double goal = new Point2D.Double(msg.getX(), msg.getY());
-            for (PolygonObstacle obs : cSpace.getObstacles()){
-                if(obs.contains(goal)){
-                    validGoal = false;
-                }
-            }    
-        }
-        
-        currGoal = msg;
-        posTargMsgPub.publish(msg);    
+	System.out.println("PUBLISH WANDER!!!!!!!!!!!!!!!");
+	if (map != null) {
+	    Rectangle2D worldRect = map.getWorldRect();
+	    while(!validGoal){
+		double x = Math.random()*worldRect.getWidth() + worldRect.getX();
+		double y = Math.random()*worldRect.getHeight() + worldRect.getY();
+		validGoal = map.isValid(x, y);
+		if (validGoal) {
+		    msg.setX(x);
+		    msg.setY(y);
+		    break;
+		}
+	    }
+		                msg.setX(-0.1);
+                msg.setY(3.6);
+                msg.setTheta(-1);
+
+            System.out.println("publish waypoint");
+	    System.out.println("************************************");
+	    currGoal = msg;
+	    posTargMsgPub.publish(msg);
+	}
     }
 ///////////////////////////////////////////////////////////////////////////////////////////////end States
     
@@ -396,7 +416,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
    
 ////////////////////////////////////////////////////////////////////////////////handlers
 
-    private void handleMapMsg(MapMsg msg) {
+    private void handle(MapMsg msg) {
         try {
             byte[] ba = msg.getSerializedMap().array();
             ByteArrayInputStream byteStream = new ByteArrayInputStream(ba);
@@ -451,7 +471,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     public void handle(SonarMsg sonar){
         //IMPLEMENT_STATES
         state.handle(sonar);
-       
+        System.out.println("state: " + state.getName());
+    }
+    public void handle(BallLocationMsg ball){
+        state.handle(ball);
+        System.out.println("state: " + state.getName());
     }
 ////////////////////////////////////////////////////////////////////////////////end handlers
    
@@ -475,6 +499,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     public void onStart(final ConnectedNode node) {
 	System.out.println("Hi, I'm a state machine!");
 	startTime = System.currentTimeMillis();
+
+posPub = node.newPublisher("im/alsofake","rss_msgs/PositionMsg");
 	
 	posTargMsgPub = node.newPublisher("/state/PositionTarget", "rss_msgs/PositionTargetMsg");
 	ctrlStatePub = node.newPublisher("/state/State", std_msgs.String._TYPE);
@@ -486,13 +512,24 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
 	ballLocationPub = node.newPublisher("/state/BallLocation", "rss_msgs/BallLocationMsg");
 
-
+	odoSub = node.newSubscriber("/odo/Odometry", "rss_msgs/OdometryMsg");
+	odoSub.addMessageListener(new MessageListener<rss_msgs.OdometryMsg>(){
+	@Override
+	public void onNewMessage(OdometryMsg msg){
+		PositionMsg pos = posPub.newMessage();
+		pos.setX(msg.getX());
+		pos.setY(msg.getY());
+		pos.setTheta(msg.getTheta());
+		handle(pos);	
+	}	
+	
+});
 
         posSub = node.newSubscriber("/loc/Position", "rss_msgs/PositionMsg");
         posSub.addMessageListener(new MessageListener<rss_msgs.PositionMsg>() {
             @Override
 	    public void onNewMessage(rss_msgs.PositionMsg message) {
-                state.handle(message);
+                //state.handle(message);
             }
         });
     
@@ -531,7 +568,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         sonarSub.addMessageListener(new MessageListener<rss_msgs.SonarMsg>(){
             @Override
             public void onNewMessage(rss_msgs.SonarMsg message){
-                state.handle(message);
+                handle(message);
                 //System.out.println("State Machine got a sonar (or a few)");
             }
         });
@@ -543,10 +580,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
         
         ballLocationSub = node.newSubscriber("/vision/BallLocation", "rss_msgs/BallLocationMsg");
-        ballLocationSub.addMessageListener(new MessageListener<rss_msgs.BallLocationMsg>() {
+        ballLocationSub.addMessageListener(new MessageListener<BallLocationMsg>() {
             @Override
-            public void onNewMessage(rss_msgs.BallLocationMsg message){
-                state.handle(message);
+            public void onNewMessage(BallLocationMsg message){
+                handle(message);
                 System.out.println("State Machine got a ball location message");
             }
         });
@@ -555,7 +592,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         mapSub.addMessageListener(new MessageListener<MapMsg>() {
             @Override
             public void onNewMessage(MapMsg msg) {
-                handleMapMsg(msg);
+                handle(msg);
             }
         });
         
