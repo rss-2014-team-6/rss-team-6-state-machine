@@ -93,8 +93,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                     InitializedMsg imsg = initPub.newMessage();
                     imsg.setInitialized(true);
                     initPub.publish(imsg);
-		    publishWander();
-                    state = spin;
+		    //publishWander();
+                    state = spinState;
                     lastState = this;
                 }
 	    }
@@ -471,11 +471,13 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     public void handle(SonarMsg sonar){
         //IMPLEMENT_STATES
         state.handle(sonar);
-        System.out.println("state: " + state.getName());
+        // line below doesn't compile? 
+	//System.out.println("state: " + state.getName());
     }
     public void handle(BallLocationMsg ball){
         state.handle(ball);
-        System.out.println("state: " + state.getName());
+	// line below doesn't compile?
+        //System.out.println("state: " + state.getName());
     }
 ////////////////////////////////////////////////////////////////////////////////end handlers
    

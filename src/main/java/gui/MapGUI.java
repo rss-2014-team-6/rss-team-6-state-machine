@@ -412,7 +412,8 @@ public class MapGUI extends SonarGUI implements NodeMain{
      * <p>A cloud of weighted particles.</p>
      **/
     protected class ParticleCloud extends Glyph {
-        public static final double MAX_POINT_SIZE = 0.25;
+        public static final double MAX_POINT_SIZE = 0.1;
+	public static final double MIN_POINT_SIZE = 0.005;
 
         /**
          * <p>List of GUIPoint Glyphs defining this point cloud.
@@ -460,10 +461,11 @@ public class MapGUI extends SonarGUI implements NodeMain{
                 double weight = weights[i];
                 //double red = Math.exp(-1 * weight) / maxConvertedWeight; // scaled
                 // scale to [0.0,1.0]
-                weight = (maxWeight - weight) / (maxWeight - minWeight);
+		double guiWeight = Math.exp(-1 * (weight - minWeight));
+		//weight = (maxWeight - weight) / (maxWeight - minWeight);
                 // Color the point based on weight
                 GUIPoint guiPt = new GUIPoint(pt.x, pt.y, O_POINT,
-                                              new Color((float)weight, 0.0f, 0.0f), weight*MAX_POINT_SIZE);
+                                              new Color((float)guiWeight, 0.0f, 0.0f), Math.max(guiWeight*MAX_POINT_SIZE, MIN_POINT_SIZE));
                 guiPoints.add(guiPt);
             }
         }
