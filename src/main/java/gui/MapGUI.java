@@ -2,6 +2,7 @@ package gui;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
@@ -25,6 +26,7 @@ import gui_msgs.GUIPathMsg;
 import gui_msgs.GUIGraphMsg;
 import gui_msgs.PointDataMsg;
 import gui_msgs.PointMappingMsg;
+import gui_msgs.ColorMsg;
 
 
 /**
@@ -485,6 +487,33 @@ public class MapGUI extends SonarGUI implements NodeMain{
     }
 
     /**
+     * Fiducial (two colored balls stacked) GUI item.
+     **/
+    protected class Fiducial extends Glyph {
+        Color top;
+        Color bottom;
+        Point2D.Double pos;
+
+        public Fiducial(Point2D.Double pos, Color top, Color bottom) {
+            this.top = dupColor(top);
+            this.bottom = dupColor(bottom);
+            this.pos = pos;
+        }
+        
+        /**
+         * <p>Paint the fiducial.</p>
+         *
+         * @param g2d the graphics context
+         **/
+        @Override public void paint(Graphics2D g2d) {
+            g2d.setColor(top);
+            g2d.fill(new Ellipse2D.Double(pos.getX(), pos.getY()+0.05, 0.1, 0.1));
+            g2d.setColor(bottom);
+            g2d.fill(new Ellipse2D.Double(pos.getX(), pos.getY()-0.05, 0.1, 0.1));
+        }
+    }
+
+    /**
      * <p>All the {@link MapGUI.Rect}s.</p>
      **/
     protected java.util.Set<Rect> rects =
@@ -510,6 +539,12 @@ public class MapGUI extends SonarGUI implements NodeMain{
      * <p>The single {@link MapGUI.ParticleCloud}.</p>
      **/
     protected ParticleCloud cloud = new ParticleCloud();
+
+    /**
+     * <p>All fiducials in the map.</p>
+     **/
+    protected java.util.Set<Fiducial> fiducials =
+        Collections.synchronizedSet(new HashSet<Fiducial>());
 
     /**
      * <p>The real robot location (if simulating).</p>
@@ -657,9 +692,24 @@ public class MapGUI extends SonarGUI implements NodeMain{
 
         paintCloud(g2d);
 
+        paintFiducials(g2d);
+
         if (realRobotPose != null) {
             setLineWidth(g2d, POLY_LINE_WIDTH);
             realRobotPose.paint(g2d);
+        }
+    }
+
+    /**
+     * <p>Paint all {@link #fiducials}.</p>
+     *
+     * @param g2d the graphics context
+     **/
+    protected void paintFiducials(Graphics2D g2d) {
+        synchronized(fiducials) {
+            for (Fiducial f : fiducials) {
+                f.paint(g2d);
+            }
         }
     }
 
@@ -746,6 +796,7 @@ public class MapGUI extends SonarGUI implements NodeMain{
     private Subscriber<gui_msgs.GUIPathMsg> guiPathSub;
     private Subscriber<gui_msgs.GUIGraphMsg> guiGraphSub;
     private Subscriber<gui_msgs.GUIParticleCloudMsg> guiLocSub;
+    private Subscriber<gui_msgs.GUIFiducialMsg> guiFidSub;
     private Subscriber<rss_msgs.SimulatorMsg> simSub;
 
     /**
@@ -830,7 +881,27 @@ public class MapGUI extends SonarGUI implements NodeMain{
                 }
             });
 
+        guiFidSub = node.newSubscriber("/gui/Fiducial", "gui_msgs/GUIFiducialMsg");
+        guiFidSub.addMessageListener(
+            new MessageListener<gui_msgs.GUIFiducialMsg>() {
+                @Override public void onNewMessage(gui_msgs.GUIFiducialMsg message) {
+                    fiducials.add(new Fiducial(
+                                      new Point2D.Double(message.getX(), message.getY()),
+                                      makeColor(message.getTop()),
+                                      makeColor(message.getBottom())));
+                }
+            });           
+
         super.onStart(node);
+    }
+
+    /**
+     * Produce an awt.Color object from a ColorMsg.
+     */
+    private static Color makeColor(ColorMsg msg) {
+        return new Color((int)msg.getR(),
+                         (int)msg.getG(),
+                         (int)msg.getB());
     }
 
     /**
