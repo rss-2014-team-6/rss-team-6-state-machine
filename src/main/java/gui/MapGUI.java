@@ -512,6 +512,11 @@ public class MapGUI extends SonarGUI implements NodeMain{
     protected ParticleCloud cloud = new ParticleCloud();
 
     /**
+     * <p>The real robot location (if simulating).</p>
+     **/
+    protected Poly realRobotPose;
+
+    /**
      * <p>Consruct a new MapGUI.</p>
      *
      * <p>See <code>LocalNavigation.SonarGUI(int, double, double)</code>.</p>
@@ -651,6 +656,11 @@ public class MapGUI extends SonarGUI implements NodeMain{
         paintGraph(g2d);
 
         paintCloud(g2d);
+
+        if (realRobotPose != null) {
+            setLineWidth(g2d, POLY_LINE_WIDTH);
+            realRobotPose.paint(g2d);
+        }
     }
 
     /**
@@ -736,6 +746,7 @@ public class MapGUI extends SonarGUI implements NodeMain{
     private Subscriber<gui_msgs.GUIPathMsg> guiPathSub;
     private Subscriber<gui_msgs.GUIGraphMsg> guiGraphSub;
     private Subscriber<gui_msgs.GUIParticleCloudMsg> guiLocSub;
+    private Subscriber<rss_msgs.SimulatorMsg> simSub;
 
     /**
      * Hook called by ROS to start the gui
@@ -798,7 +809,37 @@ public class MapGUI extends SonarGUI implements NodeMain{
                     }
                 }
             });
+
+        simSub = node.newSubscriber("/sim/Simulator", "rss_msgs/SimulatorMsg");
+        simSub.addMessageListener(
+            new MessageListener<rss_msgs.SimulatorMsg>() {
+                @Override public void onNewMessage(rss_msgs.SimulatorMsg message) {
+                    double x = message.getX();
+                    double y = message.getY();
+                    double theta = message.getTheta();
+                    Point2D.Double[] localVertices = {
+                        new Point2D.Double(0.2, 0.0),
+                        new Point2D.Double(-0.1, -0.1),
+                        new Point2D.Double(-0.1, 0.1)
+                    };
+                    List<Point2D.Double> globalVertices = new ArrayList<Point2D.Double>();
+                    for (Point2D.Double vert : localVertices) {
+                        globalVertices.add(localToGlobal(x, y, theta, vert));
+                    }
+                    realRobotPose = new Poly(globalVertices, true, true, Color.MAGENTA);
+                }
+            });
+
         super.onStart(node);
+    }
+
+    /**
+     * Utility local to global function.
+     */
+    private Point2D.Double localToGlobal(double x, double y, double theta, Point2D.Double loc) {
+        double xloc = x + loc.getX() * Math.cos(theta) - loc.getY() * Math.sin(theta);
+        double yloc = y + loc.getX() * Math.sin(theta) + loc.getY() * Math.cos(theta);
+        return new Point2D.Double(xloc, yloc);
     }
 
 
