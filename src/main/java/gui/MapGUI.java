@@ -40,7 +40,9 @@ import gui_msgs.ColorMsg;
  **/
 @SuppressWarnings("serial")
 public class MapGUI extends SonarGUI implements NodeMain{
-
+    
+    public static final boolean debug = true;
+    
     /**
      * <p>The application name.</p>
      **/
@@ -860,7 +862,7 @@ public class MapGUI extends SonarGUI implements NodeMain{
                     }
                 }
             });
-
+if(debug){
         simSub = node.newSubscriber("/sim/Simulator", "rss_msgs/SimulatorMsg");
         simSub.addMessageListener(
             new MessageListener<rss_msgs.SimulatorMsg>() {
@@ -880,6 +882,7 @@ public class MapGUI extends SonarGUI implements NodeMain{
                     realRobotPose = new Poly(globalVertices, true, true, Color.MAGENTA);
                 }
             });
+        
 
         guiFidSub = node.newSubscriber("/gui/Fiducial", "gui_msgs/GUIFiducialMsg");
         guiFidSub.addMessageListener(
@@ -891,10 +894,10 @@ public class MapGUI extends SonarGUI implements NodeMain{
                                       makeColor(message.getBottom())));
                 }
             });           
-
+}
         super.onStart(node);
     }
-
+    
     /**
      * Produce an awt.Color object from a ColorMsg.
      */
