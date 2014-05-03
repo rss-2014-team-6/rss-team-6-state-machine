@@ -400,7 +400,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
             posTargMsgPub.publish(currGoal);
             if (dist(msg) < HOME_THRESHOLD){
                 state = buildEnter;
-                lastState = buildLost;
+                
                 openFlap();
             }
         }
