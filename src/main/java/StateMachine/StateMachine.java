@@ -19,7 +19,7 @@ import rss_msgs.SonarMsg;
 import rss_msgs.InitializedMsg;
 import rss_msgs.BallLocationMsg;
 import rss_msgs.MapMsg;
-	import rss_msgs.OdometryMsg;
+    import rss_msgs.OdometryMsg;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
@@ -62,7 +62,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private Publisher<WaypointMsg> waypointPub;
     
     	private Publisher<PositionMsg> posPub;
-	private Subscriber<OdometryMsg> odoSub;
+    	private Subscriber<OdometryMsg> odoSub;
     
     private PositionTargetMsg currGoal;
     private WaypointMsg currWaypoint;
@@ -74,8 +74,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private static final double ROBOT_RADIUS = 0.3;
     private final double HOME_X = 0.0;
     private final double HOME_Y = 0.0;
+    private final double HOME_THETA = 0.0;
     
     private long startTime;
+    private long lastBump;
     
     private double myX;
     private double myY;
@@ -93,8 +95,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                     InitializedMsg imsg = initPub.newMessage();
                     imsg.setInitialized(true);
                     initPub.publish(imsg);
-		    publishWander();
-                    state = spin;
+		    //publishWander();
+                    state = spinState;
                     lastState = this;
                 }
 	    }
@@ -188,7 +190,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
               PositionTargetMsg targmsg = posTargMsgPub.newMessage();
               targmsg.setX(HOME_X);
               targmsg.setY(HOME_Y);
-              targmsg.setTheta(-1);
+              targmsg.setTheta(HOME_THETA);
               currGoal = targmsg;
               posTargMsgPub.publish(targmsg);
               return;
@@ -206,10 +208,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    vmsg.setTranslationVelocity(0);
 		    vmsg.setRotationVelocity(0);
 		    velPub.publish(vmsg);
-		spins_start = -1;
-                state = wander;
-                lastState = lost;
-                publishWander();
+		    spins_start = -1;
+            state = wander;
+            lastState = lost;
+            publishWander();
           }
       }
       
@@ -217,8 +219,17 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
       public void handle(BallLocationMsg msg){
           state = visualServo;
           lastState = this;
+          spins_start = -1;
           state.handle(msg);
                   
+      }
+      
+      @Override
+      public void handle(BumpMsg msg){
+          spins_start = -1;
+          lastBump = getTime();
+          state = bumped;
+          lastState = this;
       }
     };
     
@@ -231,10 +242,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
            
            WaypointMsg way = waypointPub.newMessage();
 	   
-           Point2D.Double extension = new Point2D.Double(msg.getRange()*Math.cos(msg.getBearing()), msg.getRange()*Math.sin(msg.getBearing()));
-	       Point2D.Double waypt = localToGlobal(myX, myY, myTheta, extension);
-	       way.setX(myX + msg.getRange()*Math.cos(myTheta + msg.getBearing())); //aim a bit behind the block? 
-           way.setY(myY + msg.getRange()*Math.sin(myTheta + msg.getBearing())); 
+           //Point2D.Double extension = new Point2D.Double(msg.getRange()*Math.cos(msg.getBearing()), msg.getRange()*Math.sin(msg.getBearing()));
+	       //Point2D.Double waypt = localToGlobal(myX, myY, myTheta, extension);
+	       way.setX(myX + (msg.getRange()+ 0.3)*Math.cos(myTheta + msg.getBearing())); //aim a bit behind the block? 
+           way.setY(myY + (msg.getRange()+ 0.3)*Math.sin(myTheta + msg.getBearing())); 
            way.setTheta(-1);
            waypointPub.publish(way);
            currWaypoint = way;
@@ -258,7 +269,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
            }
        }
        
-       
+       @Override
+       public void handle(BumpMsg msg){
+           lastBump = getTime();
+           state = bumped;
+           lastState = this;
+       }
     };
     
     private State wander = new State("wander"){
@@ -277,7 +293,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                 PositionTargetMsg targmsg = posTargMsgPub.newMessage();
                 targmsg.setX(HOME_X);
                 targmsg.setY(HOME_Y);
-                targmsg.setTheta(-1);
+                targmsg.setTheta(HOME_THETA);
                 currGoal = targmsg;
                 posTargMsgPub.publish(targmsg);
                 return;
@@ -293,6 +309,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         public void handle(BallLocationMsg msg){
             state = visualServo;
             lastState = this;
+            publishWander();
             state.handle(msg);
         }
         
@@ -300,6 +317,34 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         public void handle(WaypointMsg msg){
             waypointPub.publish(msg);
         }
+        
+        @Override
+        public void handle(BumpMsg msg){
+            lastBump = getTime();
+            state = bumped;
+            lastState = this;
+            publishWander();
+        }
+    };
+    
+    private State bumped = new State("bumped"){
+      private final double BUMP_TIME = 2000;
+      @Override
+      public void handle(PositionMsg msg){
+          if(getTime() - lastBump > BUMP_TIME){
+              state = spin;
+              lastState = lost;
+              VelocityMsg vmsg = velPub.newMessage();
+              vmsg.setTranslationVelocity(0);
+              vmsg.setRotationVelocity(0);
+              velPub.publish(vmsg);
+              state.handle(msg);
+          }
+          VelocityMsg vmsg = velPub.newMessage();
+          vmsg.setTranslationVelocity(-2.0);
+          vmsg.setRotationVelocity(0);
+          velPub.publish(vmsg);
+      }
     };
     
    
@@ -313,6 +358,24 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
      * exit states:
      * when you're at the build site go to buildXX
      */
+    private State driveBumped = new State("bumped"){
+        private final double BUMP_TIME = 2000;
+        @Override
+        public void handle(PositionMsg msg){
+            if(getTime() - lastBump > BUMP_TIME){
+                state = driveBuildSite;
+                lastState = lost;
+                VelocityMsg vmsg = velPub.newMessage();
+                vmsg.setTranslationVelocity(0);
+                vmsg.setRotationVelocity(0);
+                velPub.publish(vmsg);
+            }
+            VelocityMsg vmsg = velPub.newMessage();
+            vmsg.setTranslationVelocity(-2.0);
+            vmsg.setRotationVelocity(0);
+            velPub.publish(vmsg);
+        }
+      };
     
     private State driveLost = new State ("driveLost"){
         @Override
@@ -334,6 +397,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                 lastState = this;
                 return;
             }
+            posTargMsgPub.publish(currGoal);
             if (dist(msg) < HOME_THRESHOLD){
                 state = buildEnter;
                 lastState = buildLost;
@@ -345,13 +409,22 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
             waypointPub.publish(msg);
         }
         
+        @Override
+        public void handle(BumpMsg msg){
+            lastBump = getTime();
+            state = driveBumped;
+            lastState = this;
+        }
+        
     };
     
     /**
      * States for building stuff: what needs to happen here?
      */
     
-    private State buildEnter = new State("buildEnter"); //what are we gonna build?
+    private State buildEnter = new State("buildEnter"){
+       
+    }; //what are we gonna build?
     
     private State buildLost = new State("buldLost"); //does this need to exist?
     
@@ -384,28 +457,26 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private void publishWander(){
         boolean validGoal = false;
         PositionTargetMsg msg = posTargMsgPub.newMessage();
-	System.out.println("PUBLISH WANDER!!!!!!!!!!!!!!!");
-	if (map != null) {
-	    Rectangle2D worldRect = map.getWorldRect();
-	    while(!validGoal){
-		double x = Math.random()*worldRect.getWidth() + worldRect.getX();
-		double y = Math.random()*worldRect.getHeight() + worldRect.getY();
-		validGoal = map.isValid(x, y);
-		if (validGoal) {
-		    msg.setX(x);
-		    msg.setY(y);
-		    break;
-		}
-	    }
-		                msg.setX(-0.1);
-                msg.setY(3.6);
-                msg.setTheta(-1);
-
-            System.out.println("publish waypoint");
-	    System.out.println("************************************");
-	    currGoal = msg;
-	    posTargMsgPub.publish(msg);
-	}
+        
+    	if (map != null) {
+    	    Rectangle2D worldRect = map.getWorldRect();
+    	    while(!validGoal){
+        		double x = Math.random()*worldRect.getWidth() + worldRect.getX();
+        		double y = Math.random()*worldRect.getHeight() + worldRect.getY();
+        		validGoal = map.isValid(x, y);
+        		if (validGoal) {
+        		    msg.setX(x);
+        		    msg.setY(y);
+        		    break;
+        		}
+    	    }
+    		              
+            msg.setTheta(-1);
+    
+            
+    	    currGoal = msg;
+    	    posTargMsgPub.publish(msg);
+    	}
     }
 ///////////////////////////////////////////////////////////////////////////////////////////////end States
     
@@ -471,11 +542,13 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     public void handle(SonarMsg sonar){
         //IMPLEMENT_STATES
         state.handle(sonar);
-        System.out.println("state: " + state.getName());
+        // line below doesn't compile? 
+	//System.out.println("state: " + state.getName());
     }
     public void handle(BallLocationMsg ball){
         state.handle(ball);
-        System.out.println("state: " + state.getName());
+	// line below doesn't compile?
+        //System.out.println("state: " + state.getName());
     }
 ////////////////////////////////////////////////////////////////////////////////end handlers
    
@@ -497,39 +570,39 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
      */
     @Override
     public void onStart(final ConnectedNode node) {
-	System.out.println("Hi, I'm a state machine!");
-	startTime = System.currentTimeMillis();
+    	System.out.println("Hi, I'm a state machine!");
+    	startTime = System.currentTimeMillis();
+    
+    	posPub = node.newPublisher("im/alsofake","rss_msgs/PositionMsg");
+    	
+    	posTargMsgPub = node.newPublisher("/state/PositionTarget", "rss_msgs/PositionTargetMsg");
+    	ctrlStatePub = node.newPublisher("/state/State", std_msgs.String._TYPE);
+    	waypointPub = node.newPublisher("/state/Waypoint", "rss_msgs/WaypointMsg");
+    
+    	velPub = node.newPublisher("/state/Velocity", "rss_msgs/VelocityMsg");
+            initPub = node.newPublisher("/state/Initialized", "rss_msgs/InitializedMsg");
+    	//rand = new Random();
 
-posPub = node.newPublisher("im/alsofake","rss_msgs/PositionMsg");
-	
-	posTargMsgPub = node.newPublisher("/state/PositionTarget", "rss_msgs/PositionTargetMsg");
-	ctrlStatePub = node.newPublisher("/state/State", std_msgs.String._TYPE);
-	waypointPub = node.newPublisher("/state/Waypoint", "rss_msgs/WaypointMsg");
+        ballLocationPub = node.newPublisher("/state/BallLocation", "rss_msgs/BallLocationMsg");
 
-	velPub = node.newPublisher("/state/Velocity", "rss_msgs/VelocityMsg");
-        initPub = node.newPublisher("/state/Initialized", "rss_msgs/InitializedMsg");
-	//rand = new Random();
-
-	ballLocationPub = node.newPublisher("/state/BallLocation", "rss_msgs/BallLocationMsg");
-
-	odoSub = node.newSubscriber("/odo/Odometry", "rss_msgs/OdometryMsg");
-	odoSub.addMessageListener(new MessageListener<rss_msgs.OdometryMsg>(){
-	@Override
-	public void onNewMessage(OdometryMsg msg){
-		PositionMsg pos = posPub.newMessage();
-		pos.setX(msg.getX());
-		pos.setY(msg.getY());
-		pos.setTheta(msg.getTheta());
-		handle(pos);	
-	}	
-	
-});
+    	odoSub = node.newSubscriber("/odo/Odometry", "rss_msgs/OdometryMsg");
+    	odoSub.addMessageListener(new MessageListener<rss_msgs.OdometryMsg>(){
+        	@Override
+        	public void onNewMessage(OdometryMsg msg){
+        		PositionMsg pos = posPub.newMessage();
+        		pos.setX(msg.getX());
+        		pos.setY(msg.getY());
+        		pos.setTheta(msg.getTheta());
+        		handle(pos);	
+        	}	
+        	
+        });
 
         posSub = node.newSubscriber("/loc/Position", "rss_msgs/PositionMsg");
         posSub.addMessageListener(new MessageListener<rss_msgs.PositionMsg>() {
             @Override
-	    public void onNewMessage(rss_msgs.PositionMsg message) {
-                //state.handle(message);
+            public void onNewMessage(rss_msgs.PositionMsg message) {
+                //handle(message);
             }
         });
     
@@ -541,7 +614,7 @@ posPub = node.newPublisher("im/alsofake","rss_msgs/PositionMsg");
             public void onNewMessage(rss_msgs.WaypointMsg message){
                 handle(message);
                 System.out.println("State Machine got a waypoint");
-        }
+            }
         });
         
         
@@ -549,7 +622,7 @@ posPub = node.newPublisher("im/alsofake","rss_msgs/PositionMsg");
         bumpSub.addMessageListener(new MessageListener<rss_msgs.BumpMsg>(){
             @Override
             public void onNewMessage(rss_msgs.BumpMsg message){
-                state.handle(message);
+                handle(message);
                 //System.out.println("State Machine got a bump");
                 
             }
@@ -559,7 +632,7 @@ posPub = node.newPublisher("im/alsofake","rss_msgs/PositionMsg");
         breakbeamSub.addMessageListener(new MessageListener<rss_msgs.BreakBeamMsg>() {
             @Override
             public void onNewMessage(rss_msgs.BreakBeamMsg message){
-                state.handle(message);
+                handle(message);
                 //System.out.println("State Machine got a broken beam");
             }
         });
@@ -575,7 +648,7 @@ posPub = node.newPublisher("im/alsofake","rss_msgs/PositionMsg");
 
 
 
-	state = startState;
+        state = startState;
         //count = 0; // for testing --bhomberg
 
         

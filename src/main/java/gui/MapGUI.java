@@ -2,6 +2,7 @@ package gui;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
@@ -25,6 +26,7 @@ import gui_msgs.GUIPathMsg;
 import gui_msgs.GUIGraphMsg;
 import gui_msgs.PointDataMsg;
 import gui_msgs.PointMappingMsg;
+import gui_msgs.ColorMsg;
 
 
 /**
@@ -412,6 +414,9 @@ public class MapGUI extends SonarGUI implements NodeMain{
      * <p>A cloud of weighted particles.</p>
      **/
     protected class ParticleCloud extends Glyph {
+        public static final double MAX_POINT_SIZE = 0.1;
+	public static final double MIN_POINT_SIZE = 0.005;
+
         /**
          * <p>List of GUIPoint Glyphs defining this point cloud.
          **/
@@ -443,9 +448,13 @@ public class MapGUI extends SonarGUI implements NodeMain{
             }
             */
             double maxWeight = 0.0;
+            double minWeight = Double.POSITIVE_INFINITY;
             for (int i = 0; i < weights.length; i++) {
                 if (weights[i] > maxWeight) {
                     maxWeight = weights[i];
+                }
+                if (weights[i] < minWeight) {
+                    minWeight = weights[i];
                 }
             }
             
@@ -453,9 +462,12 @@ public class MapGUI extends SonarGUI implements NodeMain{
                 Point2D.Double pt = points.get(i);
                 double weight = weights[i];
                 //double red = Math.exp(-1 * weight) / maxConvertedWeight; // scaled
-                double red = (maxWeight - weight) / maxWeight;
+                // scale to [0.0,1.0]
+		double guiWeight = Math.exp(-1 * (weight - minWeight));
+		//weight = (maxWeight - weight) / (maxWeight - minWeight);
                 // Color the point based on weight
-                GUIPoint guiPt = new GUIPoint(pt.x, pt.y, O_POINT, new Color((float)red, 0.0f, 0.0f));
+                GUIPoint guiPt = new GUIPoint(pt.x, pt.y, O_POINT,
+                                              new Color((float)guiWeight, 0.0f, 0.0f), Math.max(guiWeight*MAX_POINT_SIZE, MIN_POINT_SIZE));
                 guiPoints.add(guiPt);
             }
         }
@@ -471,6 +483,33 @@ public class MapGUI extends SonarGUI implements NodeMain{
             for (GUIPoint guiPt : guiPoints) {
                 guiPt.paint(g2d);
             }
+        }
+    }
+
+    /**
+     * Fiducial (two colored balls stacked) GUI item.
+     **/
+    protected class Fiducial extends Glyph {
+        Color top;
+        Color bottom;
+        Point2D.Double pos;
+
+        public Fiducial(Point2D.Double pos, Color top, Color bottom) {
+            this.top = dupColor(top);
+            this.bottom = dupColor(bottom);
+            this.pos = pos;
+        }
+        
+        /**
+         * <p>Paint the fiducial.</p>
+         *
+         * @param g2d the graphics context
+         **/
+        @Override public void paint(Graphics2D g2d) {
+            g2d.setColor(top);
+            g2d.fill(new Ellipse2D.Double(pos.getX(), pos.getY()+0.05, 0.1, 0.1));
+            g2d.setColor(bottom);
+            g2d.fill(new Ellipse2D.Double(pos.getX(), pos.getY()-0.05, 0.1, 0.1));
         }
     }
 
@@ -500,6 +539,17 @@ public class MapGUI extends SonarGUI implements NodeMain{
      * <p>The single {@link MapGUI.ParticleCloud}.</p>
      **/
     protected ParticleCloud cloud = new ParticleCloud();
+
+    /**
+     * <p>All fiducials in the map.</p>
+     **/
+    protected java.util.Set<Fiducial> fiducials =
+        Collections.synchronizedSet(new HashSet<Fiducial>());
+
+    /**
+     * <p>The real robot location (if simulating).</p>
+     **/
+    protected Poly realRobotPose;
 
     /**
      * <p>Consruct a new MapGUI.</p>
@@ -641,6 +691,26 @@ public class MapGUI extends SonarGUI implements NodeMain{
         paintGraph(g2d);
 
         paintCloud(g2d);
+
+        paintFiducials(g2d);
+
+        if (realRobotPose != null) {
+            setLineWidth(g2d, POLY_LINE_WIDTH);
+            realRobotPose.paint(g2d);
+        }
+    }
+
+    /**
+     * <p>Paint all {@link #fiducials}.</p>
+     *
+     * @param g2d the graphics context
+     **/
+    protected void paintFiducials(Graphics2D g2d) {
+        synchronized(fiducials) {
+            for (Fiducial f : fiducials) {
+                f.paint(g2d);
+            }
+        }
     }
 
     /**
@@ -726,6 +796,8 @@ public class MapGUI extends SonarGUI implements NodeMain{
     private Subscriber<gui_msgs.GUIPathMsg> guiPathSub;
     private Subscriber<gui_msgs.GUIGraphMsg> guiGraphSub;
     private Subscriber<gui_msgs.GUIParticleCloudMsg> guiLocSub;
+    private Subscriber<gui_msgs.GUIFiducialMsg> guiFidSub;
+    private Subscriber<rss_msgs.SimulatorMsg> simSub;
 
     /**
      * Hook called by ROS to start the gui
@@ -788,7 +860,57 @@ public class MapGUI extends SonarGUI implements NodeMain{
                     }
                 }
             });
+
+        simSub = node.newSubscriber("/sim/Simulator", "rss_msgs/SimulatorMsg");
+        simSub.addMessageListener(
+            new MessageListener<rss_msgs.SimulatorMsg>() {
+                @Override public void onNewMessage(rss_msgs.SimulatorMsg message) {
+                    double x = message.getX();
+                    double y = message.getY();
+                    double theta = message.getTheta();
+                    Point2D.Double[] localVertices = {
+                        new Point2D.Double(0.2, 0.0),
+                        new Point2D.Double(-0.1, -0.1),
+                        new Point2D.Double(-0.1, 0.1)
+                    };
+                    List<Point2D.Double> globalVertices = new ArrayList<Point2D.Double>();
+                    for (Point2D.Double vert : localVertices) {
+                        globalVertices.add(localToGlobal(x, y, theta, vert));
+                    }
+                    realRobotPose = new Poly(globalVertices, true, true, Color.MAGENTA);
+                }
+            });
+
+        guiFidSub = node.newSubscriber("/gui/Fiducial", "gui_msgs/GUIFiducialMsg");
+        guiFidSub.addMessageListener(
+            new MessageListener<gui_msgs.GUIFiducialMsg>() {
+                @Override public void onNewMessage(gui_msgs.GUIFiducialMsg message) {
+                    fiducials.add(new Fiducial(
+                                      new Point2D.Double(message.getX(), message.getY()),
+                                      makeColor(message.getTop()),
+                                      makeColor(message.getBottom())));
+                }
+            });           
+
         super.onStart(node);
+    }
+
+    /**
+     * Produce an awt.Color object from a ColorMsg.
+     */
+    private static Color makeColor(ColorMsg msg) {
+        return new Color((int)msg.getR(),
+                         (int)msg.getG(),
+                         (int)msg.getB());
+    }
+
+    /**
+     * Utility local to global function.
+     */
+    private Point2D.Double localToGlobal(double x, double y, double theta, Point2D.Double loc) {
+        double xloc = x + loc.getX() * Math.cos(theta) - loc.getY() * Math.sin(theta);
+        double yloc = y + loc.getX() * Math.sin(theta) + loc.getY() * Math.cos(theta);
+        return new Point2D.Double(xloc, yloc);
     }
 
 

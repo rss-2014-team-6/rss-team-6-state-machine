@@ -166,23 +166,30 @@ public class SonarGUI extends VisionGUI {
 			return true;
 		}
 
+            /**
+             * Default radius constructor.
+             */
+            protected GUIPoint(double x, double y, int shape, Color color) {
+                this(x, y, shape, color, POINT_RADIUS);
+            }
+
 		/**
 		 * <p>Create a new GUI point.</p>
 		 **/
-		protected GUIPoint(double x, double y, int shape, Color color) {
+            protected GUIPoint(double x, double y, int shape, Color color, double radius) {
 
 			this.shapeType = shape;
 
 			this.color = dupColor(color);
 
-			double xMin = x - POINT_RADIUS;
-			double yMin = y - POINT_RADIUS;
+			double xMin = x - radius;
+			double yMin = y - radius;
 
 			switch (shape) {
 				case X_POINT: {
 
-					double xMax = x + POINT_RADIUS;
-					double yMax = y + POINT_RADIUS;
+					double xMax = x + radius;
+					double yMax = y + radius;
 
 					this.shape = new Shape[2];
 					this.shape[0] = new Line2D.Double(xMin, yMin, xMax, yMax);
@@ -194,8 +201,8 @@ public class SonarGUI extends VisionGUI {
 
 					this.shape = new Shape[1];
 					this.shape[0] = new Rectangle2D.Double(xMin, yMin,
-							2.0*POINT_RADIUS,
-							2.0*POINT_RADIUS);
+							2.0*radius,
+							2.0*radius);
 					break;
 				}
 				default: {
@@ -215,7 +222,7 @@ public class SonarGUI extends VisionGUI {
 		public void paint(Graphics2D g2d) {
 			g2d.setColor(color);
 			for (int i = 0; i < shape.length; i++) {
-				g2d.draw(shape[i]);
+				g2d.fill(shape[i]);
 			}
 		}
 	}

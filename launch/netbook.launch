@@ -13,6 +13,7 @@
     <param name="/mapFileName" value="$(find rosjava_pkg)/maps/global-nav-maze-2011-basic.map" />
     <!--<param name="/mapFileName" value="$(find rosjava_pkg)/maps/empty-rect.map" />-->
   </node>
+
   <node name="vid1" pkg="gscam" type="gscam">
     <param name="gscam_config" value="v4l2src device=/dev/video1 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
     <remap from="camera/image_raw" to="lower_cam/image_raw" />
