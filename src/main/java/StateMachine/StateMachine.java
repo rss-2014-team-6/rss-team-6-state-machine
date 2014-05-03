@@ -147,7 +147,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	};
 	
 //////////////////////////////////////////////////////////////////////////////////States below, not integrated stuff above
-    private final long WANDER_TIME = 240000; //4 minutes
+    private final long WANDER_TIME = 420000; //7 minutes 
     
     private State lastState;
     private State state;
@@ -401,6 +401,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
             if (dist(msg) < HOME_THRESHOLD){
                 state = buildEnter;
                 lastState = buildLost;
+                openFlap();
             }
         }
         
@@ -420,13 +421,35 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     /**
      * States for building stuff: what needs to happen here?
+     * drive forward til you bump the wall, then stop. 
      */
     
     private State buildEnter = new State("buildEnter"){
-       
-    }; //what are we gonna build?
+       private boolean stop = false;
+       @Override
+       public void handle(PositionMsg msg){
+           if (!stop){
+           VelocityMsg vmsg = velPub.newMessage();
+           vmsg.setTranslationVelocity(2.0);
+           vmsg.setRotationVelocity(0);
+           velPub.publish(vmsg);
+           } else {
+               VelocityMsg vmsg = velPub.newMessage();
+               vmsg.setTranslationVelocity(0);
+               vmsg.setRotationVelocity(0);
+               velPub.publish(vmsg);
+           }
+       }
+       @Override
+       public void handle(BumpMsg msg){
+           stop = true;
+       }
+    }; 
     
-    private State buildLost = new State("buldLost"); //does this need to exist?
+    public void openFlap(){
+        //@TODO make flap open...
+        
+    }
     
     public boolean localized(PositionMsg msg){
         //@TODO:check if msg has enough confidence to mean we are sure we know where we are
