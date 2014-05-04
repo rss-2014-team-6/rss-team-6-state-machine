@@ -147,6 +147,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		}
 		if (spins_start == -1){
 		    spins_start = getTime();
+		}
+		if (spins_start < SPIN_TIME){ 
 		    VelocityMsg vmsg = velPub.newMessage();
 		    vmsg.setTranslationVelocity(0);
 		    vmsg.setRotationVelocity(2.0);
