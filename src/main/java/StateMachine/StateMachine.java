@@ -19,7 +19,7 @@ import rss_msgs.SonarMsg;
 import rss_msgs.InitializedMsg;
 import rss_msgs.BallLocationMsg;
 import rss_msgs.MapMsg;
-    import rss_msgs.OdometryMsg;
+import rss_msgs.OdometryMsg;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
@@ -224,10 +224,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
       
       @Override
       public void handle(BumpMsg msg){
-          spins_start = -1;
-          lastBump = getTime();
-          state = bumped;
-          lastState = this;
+          if (msg.getLeft() || msg.getRight()) {
+              spins_start = -1;
+              lastBump = getTime();
+              state = bumped;
+              lastState = this;
+          }
       }
     };
     
@@ -269,9 +271,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
        
        @Override
        public void handle(BumpMsg msg){
-           lastBump = getTime();
-           state = bumped;
-           lastState = this;
+           if (msg.getLeft() || msg.getRight()) {
+               lastBump = getTime();
+               state = bumped;
+               lastState = this;
+           }
        }
     };
     
@@ -318,10 +322,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         
         @Override
         public void handle(BumpMsg msg){
-            lastBump = getTime();
-            state = bumped;
-            lastState = this;
-            publishWander();
+            if (msg.getLeft() || msg.getRight()) {
+                lastBump = getTime();
+                state = bumped;
+                lastState = this;
+                publishWander();
+            }
         }
     };
     
@@ -410,9 +416,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         
         @Override
         public void handle(BumpMsg msg){
-            lastBump = getTime();
-            state = driveBumped;
-            lastState = this;
+            if (msg.getLeft() || msg.getRight()) {
+                lastBump = getTime();
+                state = driveBumped;
+                lastState = this;
+            }
         }
         
     };
@@ -440,7 +448,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
        }
        @Override
        public void handle(BumpMsg msg){
-           stop = true;
+           if (msg.getLeft() || msg.getRight()) {
+               stop = true;
+           }
        }
     }; 
     
