@@ -57,12 +57,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private Publisher<PositionTargetMsg> motorsPub;
     private Publisher<BallLocationMsg> ballLocationPub;
     
-
-    
     private Publisher<WaypointMsg> waypointPub;
     
-    	private Publisher<PositionMsg> posPub;
-    	private Subscriber<OdometryMsg> odoSub;
+    private Publisher<PositionMsg> posPub;
+    private Subscriber<OdometryMsg> odoSub;
     
     private PositionTargetMsg currGoal;
     private WaypointMsg currWaypoint;
@@ -96,7 +94,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                     imsg.setInitialized(true);
                     initPub.publish(imsg);
 		    //publishWander();
-                    state = spinState;
+                    state = spin;
                     lastState = this;
                 }
 	    }
@@ -612,11 +610,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     	odoSub.addMessageListener(new MessageListener<rss_msgs.OdometryMsg>(){
         	@Override
         	public void onNewMessage(OdometryMsg msg){
-        		PositionMsg pos = posPub.newMessage();
+		    //running off of localization position rather than odometry position
+		    /*PositionMsg pos = posPub.newMessage();
         		pos.setX(msg.getX());
         		pos.setY(msg.getY());
         		pos.setTheta(msg.getTheta());
-        		handle(pos);	
+        		handle(pos);	*/
         	}	
         	
         });
@@ -625,7 +624,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         posSub.addMessageListener(new MessageListener<rss_msgs.PositionMsg>() {
             @Override
             public void onNewMessage(rss_msgs.PositionMsg message) {
-                //handle(message);
+                handle(message);
             }
         });
     
@@ -636,7 +635,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
             @Override
             public void onNewMessage(rss_msgs.WaypointMsg message){
                 handle(message);
-                System.out.println("State Machine got a waypoint");
+                //System.out.println("State Machine got a waypoint");
             }
         });
         
