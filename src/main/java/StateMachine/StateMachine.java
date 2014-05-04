@@ -391,9 +391,48 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		public void handle(BumpMsg msg){
 		if (msg.getLeft() || msg.getRight()) {
 		    stop = true;
+		    // we want to stop as soon as we hit the wall
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(0);
+		    vmsg.setRotationVelocity(0);
+		    velPub.publish(vmsg);
+		    lastState=this;
+		    state = buildDriveBack;
 		}
 	    }
 	}; 
+
+    private State buildDriveBack = new State("buildDriveBack"){
+	    private int doneTime = 5000;  // drive back for 5 seconds
+	    private int startTime = -1;
+	    @Override
+		public void handle(PositionMsg msg){
+		if (startTime == -1)
+		    startTime = getTime();
+		if (getTime() < doneTime){
+		    //drive backwards
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(-2.0);
+		    vmsg.setRotationVelocity(0);
+		    velPub.publish(vmsg);
+		} else {
+		    // we're done! stop.
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(0);
+		    vmsg.setRotationVelocity(0);
+		    velPub.publish(vmsg);
+
+		    lastState = this;
+		    state = done;
+		}
+	    }
+	    
+	};
+    
+    private State done = new State("done"){
+	    
+	};
+
     
     public void openFlap(){
         //@TODO make flap open...
