@@ -169,11 +169,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
       
 	    @Override
 		public void handle(BallLocationMsg msg){
-		state = visualServo;
-		lastState = this;
-		spins_start = -1;
-		state.handle(msg);
-                  
+		if(msg.getRange() > 0){
+		    state = visualServo;
+		    lastState = this;
+		    spins_start = -1;
+		    state.handle(msg);
+		}
 	    }
       
 	    @Override
@@ -191,14 +192,15 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	    private final double PICKUP_THRESHOLD = .02;
 	    @Override
 		public void handle(BallLocationMsg msg){   
-		WaypointMsg way = waypointPub.newMessage();
+		if(msg.getRange() > 0){
+		    WaypointMsg way = waypointPub.newMessage();
 	   
-		way.setX(myX + (msg.getRange()+ 0.3)*Math.cos(myTheta + msg.getBearing())); //aim a bit behind the block? 
-		way.setY(myY + (msg.getRange()+ 0.3)*Math.sin(myTheta + msg.getBearing())); 
-		way.setTheta(-1);
-		waypointPub.publish(way);
-		currWaypoint = way;
-
+		    way.setX(myX + (msg.getRange()+ 0.3)*Math.cos(myTheta + msg.getBearing())); //aim a bit behind the block? 
+		    way.setY(myY + (msg.getRange()+ 0.3)*Math.sin(myTheta + msg.getBearing())); 
+		    way.setTheta(-1);
+		    waypointPub.publish(way);
+		    currWaypoint = way;
+		}
 		//TODO
 		//check if it's the same block
            
@@ -252,10 +254,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         
 	    @Override 
 		public void handle(BallLocationMsg msg){
-		state = visualServo;
-		lastState = this;
-		publishWander();
-		state.handle(msg);
+		if(msg.getRange() > 0){
+		    state = visualServo;
+		    lastState = this;
+		    publishWander();
+		    state.handle(msg);
+		}
 	    }
         
 	    @Override
