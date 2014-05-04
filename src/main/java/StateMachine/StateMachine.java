@@ -191,21 +191,26 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private State visualServo = new State("visualServo"){      
 	    private final double PICKUP_THRESHOLD = .02;
 	    private final long TIMEOUT = 3000;
-	    private long startTime = -1;
+	    private long lastTime = -1;
+	    private long color = -1;
+
 	    @Override
 		public void handle(BallLocationMsg msg){   
 		if(msg.getRange() > 0){
-		    WaypointMsg way = waypointPub.newMessage();
-	   
-		    way.setX(myX + (msg.getRange()+ 0.3)*Math.cos(myTheta + msg.getBearing())); //aim a bit behind the block? 
-		    way.setY(myY + (msg.getRange()+ 0.3)*Math.sin(myTheta + msg.getBearing())); 
-		    way.setTheta(-1);
-		    waypointPub.publish(way);
-		    currWaypoint = way;
+		    if(color == -1)
+			color = msg.getColor();
+		    // check if the blocks is the same color, don't switch blocks
+		    if(msg.getColor() == color){
+			WaypointMsg way = waypointPub.newMessage();
+			
+			way.setX(myX + (msg.getRange()+ 0.3)*Math.cos(myTheta + msg.getBearing())); //aim a bit behind the block? 
+			way.setY(myY + (msg.getRange()+ 0.3)*Math.sin(myTheta + msg.getBearing())); 
+			way.setTheta(-1);
+			waypointPub.publish(way);
+			currWaypoint = way;
+			lastTime = getTime();
+		    }
 		}
-		//TODO
-		//check if it's the same block
-           
 	    }
 
 	    @Override
@@ -214,9 +219,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    state = lastState;
 		    lastState = this;
 		}
-		if(startTime == -1)
-		    startTime = getTime();
-		if(getTime() - startTime > TIMEOUT){
+		if(lastTime == -1)
+		    lastTime = getTime();
+		if(getTime() - lastTime > TIMEOUT){
 		    state = lastState;
 		    lastState = this;
 		}
@@ -360,7 +365,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		if (dist(msg) < HOME_THRESHOLD){
 		    state = buildEnter;
                 
-		    openFlap();
+		    //openFlap();
 		}
 	    }
         
@@ -387,6 +392,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private State buildEnter = new State("buildEnter"){
 	    private boolean stop = false;
+	    private final long TIMEOUT = 15000; // just in case, timeout
+	    private long startTime = -1;
+
 	    @Override
 		public void handle(PositionMsg msg){
 		if (!stop){
@@ -399,6 +407,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    vmsg.setTranslationVelocity(0);
 		    vmsg.setRotationVelocity(0);
 		    velPub.publish(vmsg);
+		}
+		if(startTime == -1)
+		    startTime = getTime();
+		if(getTime() - startTime > TIMEOUT){
+		    lastState = this;
+		    state = buildDriveBack;
 		}
 	    }
 	    @Override
@@ -417,7 +431,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	}; 
 
     private State buildDriveBack = new State("buildDriveBack"){
-	    private int doneTime = 5000;  // drive back for 5 seconds
+	    private int doneTime = 10000;  // drive back for 10 seconds
 	    private long startTime = -1;
 	    @Override
 		public void handle(PositionMsg msg){
