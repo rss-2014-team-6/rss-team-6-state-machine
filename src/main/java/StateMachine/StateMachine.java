@@ -190,6 +190,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private State visualServo = new State("visualServo"){      
 	    private final double PICKUP_THRESHOLD = .02;
+	    private final long TIMEOUT = 3000;
+	    private long startTime = -1;
 	    @Override
 		public void handle(BallLocationMsg msg){   
 		if(msg.getRange() > 0){
@@ -209,6 +211,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	    @Override
 		public void handle(PositionMsg msg){
 		if(Math.sqrt(Math.pow(currWaypoint.getX() - msg.getX(), 2) + Math.pow(currWaypoint.getY() - msg.getY(), 2)) < PICKUP_THRESHOLD){
+		    state = lastState;
+		    lastState = this;
+		}
+		if(startTime == -1)
+		    startTime = getTime();
+		if(getTime() - startTime > TIMEOUT){
 		    state = lastState;
 		    lastState = this;
 		}
