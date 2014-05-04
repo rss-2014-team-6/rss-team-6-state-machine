@@ -127,7 +127,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private State spin = new State("spin"){
 	    private long spins_start = -1;
-	    private final long SPIN_TIME = 5000;
+	    private final long SPIN_TIME = 20000;
       
 	    @Override
 		public void handle(PositionMsg msg){
@@ -471,9 +471,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
             ObjectInputStream stream = new ObjectInputStream(byteStream);
 
             map = (PolygonMap) stream.readObject();
+            map.recalculateCSpace();
             stream.close();
-       
-            cSpace = new CSpace(map.getObstacles(), ROBOT_RADIUS);
         }
         catch (IOException e) {
 	    throw new RuntimeException ("IOException in handleMapMsg");

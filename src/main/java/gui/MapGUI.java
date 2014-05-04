@@ -798,8 +798,8 @@ public class MapGUI extends SonarGUI implements NodeMain{
     private Subscriber<gui_msgs.GUIPathMsg> guiPathSub;
     private Subscriber<gui_msgs.GUIGraphMsg> guiGraphSub;
     private Subscriber<gui_msgs.GUIParticleCloudMsg> guiLocSub;
-   // private Subscriber<gui_msgs.GUIFiducialMsg> guiFidSub;
-   // private Subscriber<rss_msgs.SimulatorMsg> simSub;
+    private Subscriber<gui_msgs.GUIFiducialMsg> guiFidSub;
+    private Subscriber<rss_msgs.SimulatorMsg> simSub;
 
     /**
      * Hook called by ROS to start the gui
@@ -862,7 +862,6 @@ public class MapGUI extends SonarGUI implements NodeMain{
                     }
                 }
             });
-/*if(debug){
         simSub = node.newSubscriber("/sim/Simulator", "rss_msgs/SimulatorMsg");
         simSub.addMessageListener(
             new MessageListener<rss_msgs.SimulatorMsg>() {
@@ -882,8 +881,6 @@ public class MapGUI extends SonarGUI implements NodeMain{
                     realRobotPose = new Poly(globalVertices, true, true, Color.MAGENTA);
                 }
             });
-        
-
         guiFidSub = node.newSubscriber("/gui/Fiducial", "gui_msgs/GUIFiducialMsg");
         guiFidSub.addMessageListener(
             new MessageListener<gui_msgs.GUIFiducialMsg>() {
@@ -894,7 +891,6 @@ public class MapGUI extends SonarGUI implements NodeMain{
                                       makeColor(message.getBottom())));
                 }
             });           
-}*/
         super.onStart(node);
     }
     
