@@ -40,7 +40,7 @@ import java.lang.InterruptedException;
 public class StateMachine extends AbstractNodeMain implements Runnable {
 
     private Subscriber<PositionMsg> posSub;
-    public Subscriber<WaypointMsg> waypointSub;
+    private Subscriber<WaypointMsg> waypointSub;
     private Subscriber<BumpMsg> bumpSub;
     private Subscriber<BreakBeamMsg> breakbeamSub;
     private Subscriber<SonarMsg> sonarSub;
@@ -53,7 +53,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private Publisher<InitializedMsg> initPub;
     private Publisher<PositionTargetMsg> motorsPub;
     private Publisher<BallLocationMsg> ballLocationPub;
-    
+
     private Publisher<WaypointMsg> waypointPub;
     
     private Publisher<PositionMsg> posPub;
@@ -82,8 +82,6 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private State lastState;
     private State state;
-
-
     
     /*  The start state.  Should be pretty self explanatory.
      */
@@ -305,7 +303,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
      * exit states:
      * when you're at the build site go to buildXX
      */
-    private State driveBumped = new State("bumped"){
+    private State driveBumped = new State("driveBumped"){
 	    private final double BUMP_TIME = 2000;
 	    @Override
 		public void handle(PositionMsg msg){
@@ -493,6 +491,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         myY = odo.getY();
         myTheta = odo.getTheta();
         state.handle(odo);   
+
+	//publish what state we're in for debugging purposes
+	std_msgs.String msg = ctrlStatePub.newMessage();
+	msg.setData(state.getName());
+	ctrlStatePub.publish(msg);
     }
     
     public void handle(WaypointMsg way){
@@ -628,7 +631,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    handle(msg);
 		}
 	    });
-        
+
     }
     
         
