@@ -18,7 +18,10 @@ public class State {
 	this.name = name;
     }
 
-
+    public String getName(){
+	return name;
+    }
+    
     public void handle (BumpMsg msg){
 
 	// commenting all these out since they'll clog up the debug screen

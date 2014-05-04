@@ -41,7 +41,7 @@ import gui_msgs.ColorMsg;
 @SuppressWarnings("serial")
 public class MapGUI extends SonarGUI implements NodeMain{
     
-    public static final boolean debug = true;
+    public static final boolean debug = false;
     
     /**
      * <p>The application name.</p>
@@ -798,8 +798,8 @@ public class MapGUI extends SonarGUI implements NodeMain{
     private Subscriber<gui_msgs.GUIPathMsg> guiPathSub;
     private Subscriber<gui_msgs.GUIGraphMsg> guiGraphSub;
     private Subscriber<gui_msgs.GUIParticleCloudMsg> guiLocSub;
-    private Subscriber<gui_msgs.GUIFiducialMsg> guiFidSub;
-    private Subscriber<rss_msgs.SimulatorMsg> simSub;
+   // private Subscriber<gui_msgs.GUIFiducialMsg> guiFidSub;
+   // private Subscriber<rss_msgs.SimulatorMsg> simSub;
 
     /**
      * Hook called by ROS to start the gui
@@ -862,7 +862,7 @@ public class MapGUI extends SonarGUI implements NodeMain{
                     }
                 }
             });
-if(debug){
+/*if(debug){
         simSub = node.newSubscriber("/sim/Simulator", "rss_msgs/SimulatorMsg");
         simSub.addMessageListener(
             new MessageListener<rss_msgs.SimulatorMsg>() {
@@ -894,7 +894,7 @@ if(debug){
                                       makeColor(message.getBottom())));
                 }
             });           
-}
+}*/
         super.onStart(node);
     }
     
