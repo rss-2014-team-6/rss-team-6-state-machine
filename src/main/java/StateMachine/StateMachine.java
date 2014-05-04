@@ -404,7 +404,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
     private State buildDriveBack = new State("buildDriveBack"){
 	    private int doneTime = 5000;  // drive back for 5 seconds
-	    private int startTime = -1;
+	    private long startTime = -1;
 	    @Override
 		public void handle(PositionMsg msg){
 		if (startTime == -1)
