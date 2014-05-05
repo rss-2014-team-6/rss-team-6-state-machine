@@ -196,8 +196,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private State visualServo = new State("visualServo"){      
 	    private final double PICKUP_THRESHOLD = .02;
-	    private final long TIMEOUT = 10000;
+	    private final long MISS_TIMEOUT = 5000;
+	    private final long MAIN_TIMEOUT = 30000;
 	    private long lastTime = -1;
+	    private long startTime = -1;
 	    private long color = -1;
 
 	    @Override
@@ -209,7 +211,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    if(msg.getColor() == color){
 
 			VelocityMsg vmsg = velPub.newMessage();
-			double spd = Math.max((msg.getRange()-30)*10, 1.5);
+			double spd = Math.max((msg.getRange()-30)*10, 2);
 			vmsg.setTranslationVelocity(spd);
 			vmsg.setRotationVelocity(msg.getBearing() * 5);
 			velPub.publish(vmsg);
@@ -244,8 +246,17 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    }*/
 		if(lastTime == -1)
 		    lastTime = getTime();
-		if(getTime() - lastTime > TIMEOUT){
+		if(getTime() - lastTime > MISS_TIMEOUT){
 		    color = -1;
+		    lastTime = -1;
+		    startTime = -1;
+		    state = lastState;
+		    lastState = this;
+		}
+		if(getTime() - startTime > MAIN_TIMEOUT){
+		    color = -1;
+		    lastTime = -1;
+		    startTime = -1;
 		    state = lastState;
 		    lastState = this;
 		}
