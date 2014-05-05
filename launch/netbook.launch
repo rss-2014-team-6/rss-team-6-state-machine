@@ -9,18 +9,18 @@
   <node name="sense" pkg="rosjava_pkg" type="sensing-execute" args="Publisher" />
   <node name="odo" pkg="rosjava_pkg" type="odometry-execute" args="odometry.Odometry" />
   <node name="path" pkg="rosjava_pkg" type="path_planning-execute" args="path_planning.PlannerNode" output = "screen"  />
-  <node name="loc" pkg="rosjava_pkg" type="localization-execute" args="localization.Localization">
+  <node name="loc" pkg="rosjava_pkg" type="localization-execute" args="localization.Localization" output="screen">
     <param name="/mapFileName" value="$(find rosjava_pkg)/maps/global-nav-maze-2011-basic.map" />
     <!--<param name="/mapFileName" value="$(find rosjava_pkg)/maps/empty-rect.map" />-->
   </node>
 
   <node name="vid1" pkg="gscam" type="gscam">
-    <param name="gscam_config" value="v4l2src device=/dev/video0 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
+    <param name="gscam_config" value="v4l2src device=/dev/v4l/by-id/usb-046d_0804_4D763290-video-index0 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
     <remap from="camera/image_raw" to="lower_cam/image_raw" />
   </node>
   
   <node name="vid2" pkg="gscam" type="gscam">
-    <param name="gscam_config" value="v4l2src device=/dev/video2 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
+    <param name="gscam_config" value="v4l2src device=/dev/v4l/by-id/usb-046d_0804_4D763290-video-index0 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
     <remap from="camera/image_raw" to="upper_cam/image_raw" />
   </node>
 </launch>
