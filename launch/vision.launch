@@ -1,8 +1,9 @@
 <launch>
+  <machine name="workstation" address="workstation" default="false" user="rss-student" password="RedSolidSquid6!" env-loader="/home/rss-student/rss-team-6/src/rosjava_pkg/state_machine/launch/env-loader.sh" />
   <node name="rep1" pkg="topic_tools" type="relay" args="/lower_cam/image_raw /rss/low_video" />
   <node name="rep2" pkg="topic_tools" type="relay" args="/upper_cam/image_raw /rss/high_video" />
   
-  <node name="guiVision" pkg="rosjava_pkg" type="vision-execute" args="vision.VisualServo" output="screen" />
+  <node name="guiVision" pkg="rosjava_pkg" type="vision-execute" args="vision.VisualServo" output="screen" machine="workstation" />
 
   <node name="vid1" pkg="gscam" type="gscam">
     <param name="gscam_config" value="v4l2src device=/dev/v4l/by-id/usb-046d_0804_4D763290-video-index0 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
