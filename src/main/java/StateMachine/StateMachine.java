@@ -72,6 +72,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private final double HOME_THETA = 0.0;
     
     private long startTime;
+    private long lastUpdateTime = 0;
+    private final long ONE_TIMEOUT_TO_RULE_THEM_ALL = 30000;
     private long lastBump = 0;
     
     private double myX;
@@ -662,12 +664,18 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     }
     
     public void handle(PositionMsg odo){
-        //IMPLEMENT_STATES
-        myX = odo.getX();
+        if(myX != odo.getX() || myY != odo.getY() || myTheta != odo.getTheta())
+	    lastUpdateTime = getTime();
+	if(getTime() - lastUpdateTime > ONE_TIMEOUT_TO_RULE_THEM_ALL){
+	    lastState = state;
+	    state = spin;
+	}
+        
+	myX = odo.getX();
         myY = odo.getY();
         myTheta = odo.getTheta();
         state.handle(odo);   
-
+		
 	//publish what state we're in for debugging purposes
 	std_msgs.String msg = ctrlStatePub.newMessage();
 	msg.setData(state.getName());
