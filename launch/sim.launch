@@ -1,4 +1,4 @@
 <launch>
-  <include file="$(find rosjava_pkg)/state_machine/launch/netbook.launch" />
+  <include file="$(find rosjava_pkg)/state_machine/launch/actuallyjustthenetbook.launch" />
   <node name="sim" pkg="rosjava_pkg" type="sim_orc_utils-execute" args="orc.OrcNode" />
 </launch>
