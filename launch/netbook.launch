@@ -16,12 +16,12 @@
   </node>
 
   <node name="vid1" pkg="gscam" type="gscam">
-    <param name="gscam_config" value="v4l2src device=/dev/v4l/by-id/usb-046d_0804_4D763290-video-index0 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
+    <param name="gscam_config" value="v4l2src device=/dev/v4l/by-id/usb-046d_0804_BF3D8880-video-index0 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
     <remap from="camera/image_raw" to="lower_cam/image_raw" />
   </node>
   
   <node name="vid2" pkg="gscam" type="gscam">
-    <param name="gscam_config" value="v4l2src device=/dev/v4l/by-id/usb-046d_0804_BF3D8880-video-index0 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
+    <param name="gscam_config" value="v4l2src device=/dev/v4l/by-id/usb-046d_0804_4D763290-video-index0 ! video/x-raw-rgb, width=160, height=120 ! ffmpegcolorspace" />
     <remap from="camera/image_raw" to="upper_cam/image_raw" />
   </node>
 </launch>
