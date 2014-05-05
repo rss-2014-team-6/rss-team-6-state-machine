@@ -209,27 +209,16 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 			color = msg.getColor();
 		    // check if the blocks is the same color, don't switch blocks
 		    if(msg.getColor() == color){
-
+			// TODO: pull gains out as constants
 			VelocityMsg vmsg = velPub.newMessage();
 			double spd = Math.max((msg.getRange()-30)*10, 2);
 			vmsg.setTranslationVelocity(spd);
 			vmsg.setRotationVelocity(msg.getBearing() * 5);
 			velPub.publish(vmsg);
-			//WaypointMsg way = waypointPub.newMessage();
-
-			//Point2D.Double extension = new Point2D.Double(msg.getRange()*Math.cos(msg.getBearing()), msg.getRange()*Math.sin(msg.getBearing()));
-			//Point2D.Double waypt = localToGlobal(myX, myY, myTheta, extension);
-			
-			//way.setX(myX + (msg.getRange()+ 0.3)*Math.cos(myTheta + msg.getBearing())); //aim a bit behind the block? 
-			//way.setY(myY + (msg.getRange()+ 0.3)*Math.sin(myTheta + msg.getBearing())); 
-			//way.setX(waypt.getX());
-			//way.setY(waypt.getY());
-			//way.setTheta(-1);
-			//waypointPub.publish(way);
-			//currWaypoint = way;
 			lastTime = getTime();
 		    }
 		}
+		//TODO: pull these out as constants
 		if(msg.getRange() < .4 && Math.abs(msg.getBearing()) < .2){
 		    //lastState = this;
 		    state = driveForward;
@@ -238,12 +227,6 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
 	    @Override
 		public void handle(PositionMsg msg){
-		/*if(Math.sqrt(Math.pow(currWaypoint.getX() - msg.getX(), 2) + Math.pow(currWaypoint.getY() - msg.getY(), 2)) < PICKUP_THRESHOLD){
-
-		    color = -1;
-		    state = lastState;
-		    lastState = this;
-		    }*/
 		if(lastTime == -1)
 		    lastTime = getTime();
 		if(getTime() - lastTime > MISS_TIMEOUT){
@@ -267,6 +250,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		if (msg.getLeft() || msg.getRight()) {
 		    lastBump = getTime();
 		    color = -1;
+		    lastTime = -1;
+		    startTime = -1;
 		    state = bumped;
 		    lastState = this;
 		}
@@ -294,6 +279,17 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    velPub.publish(vmsg);
 		}
 	    }
+
+	    @Override
+		public void handle(BumpMsg msg){
+		if (msg.getLeft() || msg.getRight()) {
+		    lastBump = getTime();
+		    startTime = -1;
+		    state = bumped;
+		    lastState = this;
+		}
+	    }
+
 	};
     
     private State wander = new State("wander"){
