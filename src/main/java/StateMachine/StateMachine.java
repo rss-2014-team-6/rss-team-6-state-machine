@@ -335,23 +335,73 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	};
     
     private State bumped = new State("bumped"){
-	    private final double BUMP_TIME = 2000;
-	    @Override
-		public void handle(PositionMsg msg){
-		if(getTime() - lastBump > BUMP_TIME){
-		    state = spin;
-		    lastState = this;
-		    VelocityMsg vmsg = velPub.newMessage();
-		    vmsg.setTranslationVelocity(0);
-		    vmsg.setRotationVelocity(0);
-		    velPub.publish(vmsg);
-		    state.handle(msg);
-		}
-		VelocityMsg vmsg = velPub.newMessage();
-		vmsg.setTranslationVelocity(-2.0);
-		vmsg.setRotationVelocity(0);
-		velPub.publish(vmsg);
-	    }
+        private final double BUMP_TIME = 2000;
+        private final double FWD_TIME = 4000;
+        private final double BACK_TIME = 1000;
+        private int dir = 1; //positive is left, negative is right
+        private boolean goBack = false;
+        @Override
+        public void handle(PositionMsg msg){
+            if(goBack){
+                if(getTime() - lastBump > BACK_TIME){
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(dir*2.0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }else if(getTime() - lastBump > BUMP_TIME + 1000){
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(2.0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }else if (getTime() - lastBump > FWD_TIME + 1000){
+                    state = spin;
+                    lastState = this;
+                    goBack = false;
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }else{
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(-2.0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }
+            }else{
+                if(getTime() - lastBump > BUMP_TIME){
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(2.0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }else if (getTime() - lastBump > FWD_TIME){
+                    state = spin;
+                    lastState = this;
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }else{
+                VelocityMsg vmsg = velPub.newMessage();
+                vmsg.setTranslationVelocity(dir*2.0);
+                vmsg.setRotationVelocity(0);
+                velPub.publish(vmsg);
+                }
+            }
+        }
+        
+       @Override
+       public void handle(BumpMsg msg){
+           if (msg.getLeft() || msg.getRight()){
+               if (msg.getLeft() && msg.getRight()){
+                   goBack = true;
+               }
+               if (msg.getLeft()){
+                   dir = 1;
+               }else{
+                   dir = -1;
+               }
+           }
+       }
 	};
     
    
@@ -366,22 +416,73 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
      * when you're at the build site go to buildXX
      */
     private State driveBumped = new State("driveBumped"){
-	    private final double BUMP_TIME = 2000;
-	    @Override
-		public void handle(PositionMsg msg){
-		if(getTime() - lastBump > BUMP_TIME){
-		    state = driveBuildSite;
-		    lastState = this;
-		    VelocityMsg vmsg = velPub.newMessage();
-		    vmsg.setTranslationVelocity(0);
-		    vmsg.setRotationVelocity(0);
-		    velPub.publish(vmsg);
-		}
-		VelocityMsg vmsg = velPub.newMessage();
-		vmsg.setTranslationVelocity(-2.0);
-		vmsg.setRotationVelocity(0);
-		velPub.publish(vmsg);
-	    }
+        private final double BUMP_TIME = 2000;
+        private final double FWD_TIME = 4000;
+        private final double BACK_TIME = 1000;
+        private int dir = 1; //positive is left, negative is right
+        private boolean goBack = false;
+        @Override
+        public void handle(PositionMsg msg){
+            if(goBack){
+                if(getTime() - lastBump > BACK_TIME){
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(dir*2.0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }else if(getTime() - lastBump > BUMP_TIME + 1000){
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(2.0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }else if (getTime() - lastBump > FWD_TIME + 1000){
+                    state = driveBuildSite;
+                    lastState = this;
+                    goBack = false;
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }else{
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(-2.0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }
+            }else{
+                if(getTime() - lastBump > BUMP_TIME){
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(2.0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }else if (getTime() - lastBump > FWD_TIME){
+                    state = spin;
+                    lastState = this;
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
+                }else{
+                VelocityMsg vmsg = velPub.newMessage();
+                vmsg.setTranslationVelocity(dir*2.0);
+                vmsg.setRotationVelocity(0);
+                velPub.publish(vmsg);
+                }
+            }
+        }
+        
+       @Override
+       public void handle(BumpMsg msg){
+           if (msg.getLeft() || msg.getRight()){
+               if (msg.getLeft() && msg.getRight()){
+                   goBack = true;
+               }
+               if (msg.getLeft()){
+                   dir = 1;
+               }else{
+                   dir = -1;
+               }
+           }
+       }
 	};
     
     private State driveLost = new State ("driveLost"){
@@ -423,6 +524,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    lastBump = getTime();
 		    state = driveBumped;
 		    lastState = this;
+		    state.handle(msg);
 		}
 	    }
         
