@@ -172,7 +172,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		if(msg.getRange() > 0){
 		    state = visualServo;
 		    lastState = this;
-		    spins_start = -1;
+		    //spins_start = -1;
 		    state.handle(msg);
 		}
 	    }
@@ -187,10 +187,16 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		}
 	    }
 	};
+
+    private Point2D.Double localToGlobal(double x, double y, double theta, Point2D.Double loc){
+	double xpos = x + loc.getX() * Math.cos(theta) - loc.getY() * Math.sin(theta);
+	double ypos = y + loc.getX() * Math.sin(theta) + loc.getY() * Math.cos(theta);
+	return new Point2D.Double(xpos, ypos);
+    }
     
     private State visualServo = new State("visualServo"){      
 	    private final double PICKUP_THRESHOLD = .02;
-	    private final long TIMEOUT = 3000;
+	    private final long TIMEOUT = 10000;
 	    private long lastTime = -1;
 	    private long color = -1;
 
@@ -201,16 +207,30 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 			color = msg.getColor();
 		    // check if the blocks is the same color, don't switch blocks
 		    if(msg.getColor() == color){
+
+			//VelocityMsg vmsg = velPub.newMessage();
+			//vmsg.setTranslationVelocity((msg.getRange()-.30)*10);
+			//vmsg.setRotationVelocity(msg.getBearing() * 10);
+			//velPub.publish(vmsg);
 			WaypointMsg way = waypointPub.newMessage();
+
+			//Point2D.Double extension = new Point2D.Double(msg.getRange()*Math.cos(msg.getBearing()), msg.getRange()*Math.sin(msg.getBearing()));
+			//Point2D.Double waypt = localToGlobal(myX, myY, myTheta, extension);
 			
 			way.setX(myX + (msg.getRange()+ 0.3)*Math.cos(myTheta + msg.getBearing())); //aim a bit behind the block? 
 			way.setY(myY + (msg.getRange()+ 0.3)*Math.sin(myTheta + msg.getBearing())); 
+			//way.setX(waypt.getX());
+			//way.setY(waypt.getY());
 			way.setTheta(-1);
 			waypointPub.publish(way);
 			currWaypoint = way;
 			lastTime = getTime();
 		    }
 		}
+		/*if(msg.getRange() < .35 && Math.abs(msg.getBearing()) < .2){
+		    //lastState = this;
+		    state = driveForward;
+		    }*/
 	    }
 
 	    @Override
@@ -233,6 +253,29 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    lastBump = getTime();
 		    state = bumped;
 		    lastState = this;
+		}
+	    }
+	};
+
+    private State driveForward = new State("driveForward"){
+	    private long startTime = -1;
+	    private long TIMEOUT = 5000;
+	    @Override
+		public void handle(PositionMsg msg){
+		VelocityMsg vmsg = velPub.newMessage();
+		vmsg.setTranslationVelocity(2.0);
+		vmsg.setRotationVelocity(0);
+		velPub.publish(vmsg);
+		if(startTime == -1)
+		    startTime = getTime();
+		if(getTime() - startTime > TIMEOUT){
+		    state = lastState;
+		    lastState = this;
+		    startTime = -1;
+		    vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(0);
+		    vmsg.setRotationVelocity(0);
+		    velPub.publish(vmsg);
 		}
 	    }
 	};
