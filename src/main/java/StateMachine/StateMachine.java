@@ -72,7 +72,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private final double HOME_THETA = 0.0;
     
     private long startTime;
-    private long lastBump;
+    private long lastBump = 0;
     
     private double myX;
     private double myY;
@@ -148,7 +148,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		if (spins_start == -1){
 		    spins_start = getTime();
 		}
-		if (spins_start < SPIN_TIME){ 
+		if (getTime() - spins_start < SPIN_TIME){ 
 		    VelocityMsg vmsg = velPub.newMessage();
 		    vmsg.setTranslationVelocity(0);
 		    vmsg.setRotationVelocity(2.0);
@@ -208,37 +208,38 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    // check if the blocks is the same color, don't switch blocks
 		    if(msg.getColor() == color){
 
-			//VelocityMsg vmsg = velPub.newMessage();
-			//vmsg.setTranslationVelocity((msg.getRange()-.30)*10);
-			//vmsg.setRotationVelocity(msg.getBearing() * 10);
-			//velPub.publish(vmsg);
-			WaypointMsg way = waypointPub.newMessage();
+			VelocityMsg vmsg = velPub.newMessage();
+			double spd = Math.max((msg.getRange()-30)*10, 1.5);
+			vmsg.setTranslationVelocity(spd);
+			vmsg.setRotationVelocity(msg.getBearing() * 5);
+			velPub.publish(vmsg);
+			//WaypointMsg way = waypointPub.newMessage();
 
 			//Point2D.Double extension = new Point2D.Double(msg.getRange()*Math.cos(msg.getBearing()), msg.getRange()*Math.sin(msg.getBearing()));
 			//Point2D.Double waypt = localToGlobal(myX, myY, myTheta, extension);
 			
-			way.setX(myX + (msg.getRange()+ 0.3)*Math.cos(myTheta + msg.getBearing())); //aim a bit behind the block? 
-			way.setY(myY + (msg.getRange()+ 0.3)*Math.sin(myTheta + msg.getBearing())); 
+			//way.setX(myX + (msg.getRange()+ 0.3)*Math.cos(myTheta + msg.getBearing())); //aim a bit behind the block? 
+			//way.setY(myY + (msg.getRange()+ 0.3)*Math.sin(myTheta + msg.getBearing())); 
 			//way.setX(waypt.getX());
 			//way.setY(waypt.getY());
-			way.setTheta(-1);
-			waypointPub.publish(way);
-			currWaypoint = way;
+			//way.setTheta(-1);
+			//waypointPub.publish(way);
+			//currWaypoint = way;
 			lastTime = getTime();
 		    }
 		}
-		/*if(msg.getRange() < .35 && Math.abs(msg.getBearing()) < .2){
+		if(msg.getRange() < .4 && Math.abs(msg.getBearing()) < .2){
 		    //lastState = this;
 		    state = driveForward;
-		    }*/
+		    }
 	    }
 
 	    @Override
 		public void handle(PositionMsg msg){
-		if(Math.sqrt(Math.pow(currWaypoint.getX() - msg.getX(), 2) + Math.pow(currWaypoint.getY() - msg.getY(), 2)) < PICKUP_THRESHOLD){
+		/*if(Math.sqrt(Math.pow(currWaypoint.getX() - msg.getX(), 2) + Math.pow(currWaypoint.getY() - msg.getY(), 2)) < PICKUP_THRESHOLD){
 		    state = lastState;
 		    lastState = this;
-		}
+		    }*/
 		if(lastTime == -1)
 		    lastTime = getTime();
 		if(getTime() - lastTime > TIMEOUT){
@@ -259,7 +260,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
     private State driveForward = new State("driveForward"){
 	    private long startTime = -1;
-	    private long TIMEOUT = 5000;
+	    private long TIMEOUT = 15000;
 	    @Override
 		public void handle(PositionMsg msg){
 		VelocityMsg vmsg = velPub.newMessage();
@@ -342,10 +343,14 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         private boolean goBack = false;
         @Override
         public void handle(PositionMsg msg){
+	    //System.out.println("Last bump: " + lastBump + " getTime: " + getTime() + " diff: " + (getTime() - lastBump));
             if(goBack){
-                if(getTime() - lastBump > BACK_TIME){
+		if (getTime() - lastBump > FWD_TIME + 1000){
+                    state = spin;
+                    lastState = this;
+                    goBack = false;
                     VelocityMsg vmsg = velPub.newMessage();
-                    vmsg.setTranslationVelocity(dir*2.0);
+                    vmsg.setTranslationVelocity(0);
                     vmsg.setRotationVelocity(0);
                     velPub.publish(vmsg);
                 }else if(getTime() - lastBump > BUMP_TIME + 1000){
@@ -353,13 +358,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                     vmsg.setTranslationVelocity(2.0);
                     vmsg.setRotationVelocity(0);
                     velPub.publish(vmsg);
-                }else if (getTime() - lastBump > FWD_TIME + 1000){
-                    state = spin;
-                    lastState = this;
-                    goBack = false;
+                } else if(getTime() - lastBump > BACK_TIME){
                     VelocityMsg vmsg = velPub.newMessage();
                     vmsg.setTranslationVelocity(0);
-                    vmsg.setRotationVelocity(0);
+                    vmsg.setRotationVelocity(dir*2.0);
                     velPub.publish(vmsg);
                 }else{
                     VelocityMsg vmsg = velPub.newMessage();
@@ -368,23 +370,23 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                     velPub.publish(vmsg);
                 }
             }else{
-                if(getTime() - lastBump > BUMP_TIME){
-                    VelocityMsg vmsg = velPub.newMessage();
-                    vmsg.setTranslationVelocity(2.0);
-                    vmsg.setRotationVelocity(0);
-                    velPub.publish(vmsg);
-                }else if (getTime() - lastBump > FWD_TIME){
+		if (getTime() - lastBump > FWD_TIME){
                     state = spin;
                     lastState = this;
                     VelocityMsg vmsg = velPub.newMessage();
                     vmsg.setTranslationVelocity(0);
                     vmsg.setRotationVelocity(0);
                     velPub.publish(vmsg);
+                }else if(getTime() - lastBump > BUMP_TIME){
+                    VelocityMsg vmsg = velPub.newMessage();
+                    vmsg.setTranslationVelocity(2.0);
+                    vmsg.setRotationVelocity(0);
+                    velPub.publish(vmsg);
                 }else{
-                VelocityMsg vmsg = velPub.newMessage();
-                vmsg.setTranslationVelocity(dir*2.0);
-                vmsg.setRotationVelocity(0);
-                velPub.publish(vmsg);
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(0);
+		    vmsg.setRotationVelocity(dir*2.0);
+		    velPub.publish(vmsg);
                 }
             }
         }
@@ -396,10 +398,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                    goBack = true;
                }
                if (msg.getLeft()){
-                   dir = 1;
-               }else{
                    dir = -1;
+               }else{
+                   dir = 1;
                }
+	       lastBump = getTime();
            }
        }
 	};
@@ -477,9 +480,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
                    goBack = true;
                }
                if (msg.getLeft()){
-                   dir = 1;
-               }else{
                    dir = -1;
+               }else{
+                   dir = 1;
                }
            }
        }
