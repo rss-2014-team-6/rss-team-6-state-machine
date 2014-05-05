@@ -128,6 +128,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private State spin = new State("spin"){
 	    private long spins_start = -1;
 	    private final long SPIN_TIME = 20000;
+            private int dir = 1;
       
 	    @Override
 		public void handle(PositionMsg msg){
@@ -149,11 +150,13 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		}
 		if (spins_start == -1){
 		    spins_start = getTime();
+                    // Re-randomize spin dir on spin
+                    dir = rand.nextBoolean() ? 1 : -1;
 		}
 		if (getTime() - spins_start < SPIN_TIME){ 
 		    VelocityMsg vmsg = velPub.newMessage();
 		    vmsg.setTranslationVelocity(0);
-		    vmsg.setRotationVelocity(2.0);
+		    vmsg.setRotationVelocity(2.0*dir);
 		    velPub.publish(vmsg);
 
 		}
