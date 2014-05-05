@@ -565,7 +565,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		public void handle(PositionMsg msg){
 		if (startTime == -1)
 		    startTime = getTime();
-		if (getTime() < doneTime){
+		if (getTime() - startTime < doneTime){
 		    //drive backwards
 		    VelocityMsg vmsg = velPub.newMessage();
 		    vmsg.setTranslationVelocity(-2.0);
