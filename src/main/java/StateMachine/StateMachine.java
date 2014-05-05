@@ -634,7 +634,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     ///////////////////////////////////////////////////////////////////////////////////////////////end States
     
     
-    private Random rand; // for testing --bhomberg
+    private Random rand = new Random();
     
     private int count;
    
