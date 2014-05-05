@@ -237,12 +237,15 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	    @Override
 		public void handle(PositionMsg msg){
 		/*if(Math.sqrt(Math.pow(currWaypoint.getX() - msg.getX(), 2) + Math.pow(currWaypoint.getY() - msg.getY(), 2)) < PICKUP_THRESHOLD){
+
+		    color = -1;
 		    state = lastState;
 		    lastState = this;
 		    }*/
 		if(lastTime == -1)
 		    lastTime = getTime();
 		if(getTime() - lastTime > TIMEOUT){
+		    color = -1;
 		    state = lastState;
 		    lastState = this;
 		}
@@ -252,6 +255,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		public void handle(BumpMsg msg){
 		if (msg.getLeft() || msg.getRight()) {
 		    lastBump = getTime();
+		    color = -1;
 		    state = bumped;
 		    lastState = this;
 		}
