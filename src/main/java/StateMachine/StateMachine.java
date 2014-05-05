@@ -81,6 +81,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private double myTheta;
 
     private final long WANDER_TIME = 420000; //7 minutes 
+    private final long FINAL_TIME = 570000; //9:30 minutes
     
     private State lastState;
     private State state;
@@ -128,6 +129,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private State spin = new State("spin"){
 	    private long spins_start = -1;
 	    private final long SPIN_TIME = 20000;
+            private int dir = 1;
       
 	    @Override
 		public void handle(PositionMsg msg){
@@ -149,11 +151,13 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		}
 		if (spins_start == -1){
 		    spins_start = getTime();
+                    // Re-randomize spin dir on spin
+                    dir = rand.nextBoolean() ? 1 : -1;
 		}
 		if (getTime() - spins_start < SPIN_TIME){ 
 		    VelocityMsg vmsg = velPub.newMessage();
 		    vmsg.setTranslationVelocity(0);
-		    vmsg.setRotationVelocity(2.0);
+		    vmsg.setRotationVelocity(2.0*dir);
 		    velPub.publish(vmsg);
 
 		}
@@ -474,6 +478,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    lastState = this;
 		    return;
 		}
+		if (thisIsTheEnd()){
+		    state = buildDriveBack;
+		    lastState = this;
+		    state.handle(msg);
+		}
 		posTargMsgPub.publish(currGoal);
 		if (dist(msg) < HOME_THRESHOLD){
 		    state = buildEnter;
@@ -522,6 +531,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    vmsg.setRotationVelocity(0);
 		    velPub.publish(vmsg);
 		}
+		if (thisIsTheEnd()){
+            state = buildDriveBack;
+            lastState = this;
+            state.handle(msg);
+        }
 		if(startTime == -1)
 		    startTime = getTime();
 		if(getTime() - startTime > TIMEOUT){
@@ -605,6 +619,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     public boolean timeToGoHome(){
         return getTime() > WANDER_TIME;
+    }
+    
+    public boolean thisIsTheEnd(){
+        return getTime() > FINAL_TIME;
     }
 
     private void publishWander(){
