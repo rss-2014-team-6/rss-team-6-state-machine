@@ -233,6 +233,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		if(msg.getRange() < .4 && Math.abs(msg.getBearing()) < .2){
 		    //lastState = this;
 		    state = driveForward;
+			color = -1;
 		    }
 	    }
 
