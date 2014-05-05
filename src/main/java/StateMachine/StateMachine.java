@@ -213,7 +213,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    if(color == -1)
 			color = msg.getColor();
 		    // check if the blocks is the same color, don't switch blocks
-		    if(msg.getColor() == color){
+		    if(msg.getColor() == color || 
+		       (msg.getColor() == 0 && color == 1) ||
+		       (msg.getColor() == 1 && color == 0)){
 			// TODO: pull gains out as constants
 			VelocityMsg vmsg = velPub.newMessage();
 			double spd = Math.max((msg.getRange()-30)*10, 2);
