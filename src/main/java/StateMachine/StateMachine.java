@@ -81,6 +81,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private double myTheta;
 
     private final long WANDER_TIME = 420000; //7 minutes 
+    private final long FINAL_TIME = 570000; //9:30 minutes
     
     private State lastState;
     private State state;
@@ -477,6 +478,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    lastState = this;
 		    return;
 		}
+		if (thisIsTheEnd()){
+		    state = buildDriveBack;
+		    lastState = this;
+		    state.handle(msg);
+		}
 		posTargMsgPub.publish(currGoal);
 		if (dist(msg) < HOME_THRESHOLD){
 		    state = buildEnter;
@@ -525,6 +531,11 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    vmsg.setRotationVelocity(0);
 		    velPub.publish(vmsg);
 		}
+		if (thisIsTheEnd()){
+            state = buildDriveBack;
+            lastState = this;
+            state.handle(msg);
+        }
 		if(startTime == -1)
 		    startTime = getTime();
 		if(getTime() - startTime > TIMEOUT){
@@ -608,6 +619,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     public boolean timeToGoHome(){
         return getTime() > WANDER_TIME;
+    }
+    
+    public boolean thisIsTheEnd(){
+        return getTime() > FINAL_TIME;
     }
 
     private void publishWander(){
