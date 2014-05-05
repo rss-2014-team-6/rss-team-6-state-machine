@@ -684,6 +684,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     }
     
     public void handle(PositionMsg odo){
+        System.out.println("time: " + (getTime()/60000)%60 + ":" + (getTime()/1000)%60);
         if(myX != odo.getX() || myY != odo.getY() || myTheta != odo.getTheta())
 	    lastUpdateTime = getTime();
 	if(getTime() - lastUpdateTime > ONE_TIMEOUT_TO_RULE_THEM_ALL){
