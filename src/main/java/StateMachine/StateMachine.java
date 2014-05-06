@@ -75,6 +75,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private long lastUpdateTime = 0;
     private final long ONE_TIMEOUT_TO_RULE_THEM_ALL = 30000;
     private long lastBump = 0;
+    private boolean initialized = false;
     
     private double myX;
     private double myY;
@@ -96,13 +97,48 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		vmsg.setRotationVelocity(0);
 		velPub.publish(vmsg);
 		System.out.println("curr time: " + getTime());
-		if(getTime() >= 10000) { // wait 10 seconds
+		if(msg.getLeft() || msg.getRight()) {
+		    System.out.println("5 second delay start.");
+		    initialized = true;
+		    startTime = System.currentTimeMillis();
+		}
+		if(getTime() >= 5000) { // wait 5 seconds
                     InitializedMsg imsg = initPub.newMessage();
                     imsg.setInitialized(true);
                     initPub.publish(imsg);
-                    state = spin;
+                    state = spinState;
                     lastState = this;
                 }
+	    }
+	};
+
+    private State spinState = new State ("firstSpinState"){
+	    // ASSUMED CONDITION: not going to actually hit any bump sensors.
+	    // won't spin the whole time then....
+	    @Override public void handle(PositionMsg msg){
+		if(getTime() <= 35000){ // spin for 25s, then 5 more s in the next spin state
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(0);
+		    vmsg.setRotationVelocity(2.0);
+		    velPub.publish(vmsg);
+		}
+		else{
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(0);
+		    vmsg.setRotationVelocity(0);
+		    velPub.publish(vmsg);
+                    System.out.println("Transition to goal state");
+		    state = spin; // switch to the other spin state
+                    lastState = this;
+		}
+	    }
+	    @Override
+		public void handle(BumpMsg msg){
+		if (msg.getLeft() || msg.getRight()) {
+		    lastBump = getTime();
+		    state = bumped;
+		    lastState = this;
+		}
 	    }
 	};
     
@@ -129,7 +165,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     private State spin = new State("spin"){
 	    private long spins_start = -1;
-	    private final long SPIN_TIME = 20000;
+	    private final long SPIN_TIME = 5000;  // five seconds
             private int dir = 1;
       
 	    @Override
@@ -194,14 +230,14 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		}
 	    }
 	};
-
-    private Point2D.Double localToGlobal(double x, double y, double theta, Point2D.Double loc){
-	double xpos = x + loc.getX() * Math.cos(theta) - loc.getY() * Math.sin(theta);
-	double ypos = y + loc.getX() * Math.sin(theta) + loc.getY() * Math.cos(theta);
-	return new Point2D.Double(xpos, ypos);
-    }
-    
-    private State visualServo = new State("visualServo"){      
+	    
+	    private Point2D.Double localToGlobal(double x, double y, double theta, Point2D.Double loc){
+		double xpos = x + loc.getX() * Math.cos(theta) - loc.getY() * Math.sin(theta);
+		double ypos = y + loc.getX() * Math.sin(theta) + loc.getY() * Math.cos(theta);
+		return new Point2D.Double(xpos, ypos);
+	    }
+	    
+      private State visualServo = new State("visualServo"){      
 	    private final double PICKUP_THRESHOLD = .02;
 	    private final long MISS_TIMEOUT = 5000;
 	    private final long MAIN_TIMEOUT = 30000;
@@ -357,49 +393,50 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	};
     
     private State bumped = new State("bumped"){
-        private final double BUMP_TIME = 2000;
-        private final double FWD_TIME = 4000;
-        private final double BACK_TIME = 1000;
-        private int dir = 1; //positive is left, negative is right
-        @Override
-        public void handle(PositionMsg msg){
-	    //System.out.println("Last bump: " + lastBump + " getTime: " + getTime() + " diff: " + (getTime() - lastBump));
-            if (getTime() - lastBump > FWD_TIME + 1000){
-                state = spin;
-                lastState = this;
-                VelocityMsg vmsg = velPub.newMessage();
-                vmsg.setTranslationVelocity(0);
-                vmsg.setRotationVelocity(0);
-                velPub.publish(vmsg);
-            }else if(getTime() - lastBump > BUMP_TIME + 1000){
-                VelocityMsg vmsg = velPub.newMessage();
-                vmsg.setTranslationVelocity(2.0);
-                vmsg.setRotationVelocity(0);
-                velPub.publish(vmsg);
-            } else if(getTime() - lastBump > BACK_TIME){
-                VelocityMsg vmsg = velPub.newMessage();
-                vmsg.setTranslationVelocity(0);
-                vmsg.setRotationVelocity(dir*2.0);
-                velPub.publish(vmsg);
-            }else{
-                VelocityMsg vmsg = velPub.newMessage();
-                vmsg.setTranslationVelocity(-2.0);
-                vmsg.setRotationVelocity(0);
-                velPub.publish(vmsg);
-            }
-        }
-        
-       @Override
-       public void handle(BumpMsg msg){
-           if (msg.getLeft() || msg.getRight()){
-               if (msg.getLeft()){
-                   dir = -1;
-               }else{
-                   dir = 1;
-               }
-	       lastBump = getTime();
-           }
-       }
+	    private final double BUMP_TIME = 2000;
+	    private final double FWD_TIME = 4000;
+	    private final double BACK_TIME = 1000;
+	    private final double TURN_TIME = 3000;
+	    private int dir = 1; //positive is left, negative is right
+	    @Override
+		public void handle(PositionMsg msg){
+		//System.out.println("Last bump: " + lastBump + " getTime: " + getTime() + " diff: " + (getTime() - lastBump));
+		if (getTime() - lastBump > FWD_TIME + TURN_TIME){
+		    state = spin;
+		    lastState = this;
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(0);
+		    vmsg.setRotationVelocity(0);
+		    velPub.publish(vmsg);
+		}else if(getTime() - lastBump > BUMP_TIME + TURN_TIME){
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(2.0);
+		    vmsg.setRotationVelocity(0);
+		    velPub.publish(vmsg);
+		} else if(getTime() - lastBump > BACK_TIME){
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(0);
+		    vmsg.setRotationVelocity(dir*2.0);
+		    velPub.publish(vmsg);
+		}else{
+		    VelocityMsg vmsg = velPub.newMessage();
+		    vmsg.setTranslationVelocity(-2.0);
+		    vmsg.setRotationVelocity(0);
+		    velPub.publish(vmsg);
+		}
+	    }
+	    
+	    @Override
+		public void handle(BumpMsg msg){
+		if (msg.getLeft() || msg.getRight()){
+		    if (msg.getLeft()){
+			dir = -1;
+		    }else{
+			dir = 1;
+		    }
+		    lastBump = getTime();
+		}
+	    }
 	};
     
    
@@ -417,18 +454,19 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         private final double BUMP_TIME = 2000;
         private final double FWD_TIME = 4000;
         private final double BACK_TIME = 1000;
+	private final double TURN_TIME = 3000;
         private int dir = 1; //positive is left, negative is right
         @Override
         public void handle(PositionMsg msg){
 	    //System.out.println("Last bump: " + lastBump + " getTime: " + getTime() + " diff: " + (getTime() - lastBump));
-            if (getTime() - lastBump > FWD_TIME + 1000){
+            if (getTime() - lastBump > FWD_TIME + TURN_TIME){
                 state = driveBuildSite;
                 lastState = this;
                 VelocityMsg vmsg = velPub.newMessage();
                 vmsg.setTranslationVelocity(0);
                 vmsg.setRotationVelocity(0);
                 velPub.publish(vmsg);
-            }else if(getTime() - lastBump > BUMP_TIME + 1000){
+            }else if(getTime() - lastBump > BUMP_TIME + TURN_TIME){
                 VelocityMsg vmsg = velPub.newMessage();
                 vmsg.setTranslationVelocity(2.0);
                 vmsg.setRotationVelocity(0);
@@ -615,7 +653,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
      * Get time since start of execution in ms.
      */
     public long getTime(){
-        return System.currentTimeMillis() - startTime;
+	if (initialized)
+	    return System.currentTimeMillis() - startTime;
+	else
+	    return 0;
     }
     
     public boolean timeToGoHome(){
