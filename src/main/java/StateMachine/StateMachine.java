@@ -82,6 +82,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 
     private final long WANDER_TIME = 420000; //7 minutes 
     private final long FINAL_TIME = 570000; //9:30 minutes
+    private final long END_TIME = 600000; //10 minutes
     
     private State lastState;
     private State state;
@@ -532,10 +533,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    velPub.publish(vmsg);
 		}
 		if (thisIsTheEnd()){
-            state = buildDriveBack;
-            lastState = this;
-            state.handle(msg);
-        }
+		    state = buildDriveBack;
+		    lastState = this;
+		    state.handle(msg);
+		}
 		if(startTime == -1)
 		    startTime = getTime();
 		if(getTime() - startTime > TIMEOUT){
@@ -559,7 +560,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	}; 
 
     private State buildDriveBack = new State("buildDriveBack"){
-	    private int doneTime = 10000;  // drive back for 10 seconds
+	    private int doneTime = 15000;  // drive back for 15 seconds
 	    private long startTime = -1;
 	    @Override
 		public void handle(PositionMsg msg){
@@ -687,7 +688,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         System.out.println("time: " + (getTime()/60000)%60 + ":" + (getTime()/1000)%60);
         if(myX != odo.getX() || myY != odo.getY() || myTheta != odo.getTheta())
 	    lastUpdateTime = getTime();
-	if(getTime() - lastUpdateTime > ONE_TIMEOUT_TO_RULE_THEM_ALL){
+	if(getTime() - lastUpdateTime > ONE_TIMEOUT_TO_RULE_THEM_ALL && getTime() < END_TIME){
 	    lastState = state;
 	    state = spin;
 	}
@@ -708,26 +709,30 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     
     public void handle(WaypointMsg way){
         //IMPLEMENT_STATES
-        state.handle(way);
+	if(getTime() < END_TIME)
+	    state.handle(way);
         
     }
     
     public void handle(BumpMsg bump){
         //IMPLEMENT_STATES
-        state.handle(bump);
+	if(getTime() < END_TIME)
+	    state.handle(bump);
        
     }
     public void handle(BreakBeamMsg bbeam){
 	//IMPLEMENT_STATES
-        state.handle(bbeam);
-       
+	if(getTime() < END_TIME)
+	    state.handle(bbeam);
     }
     public void handle(SonarMsg sonar){
         //IMPLEMENT_STATES
-        state.handle(sonar);
+	if(getTime() < END_TIME)
+	    state.handle(sonar);
     }
     public void handle(BallLocationMsg ball){
-        state.handle(ball);
+        if(getTime() < END_TIME)
+	    state.handle(ball);
     }
    
 
