@@ -701,6 +701,9 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	std_msgs.String msg = ctrlStatePub.newMessage();
 	msg.setData(state.getName());
 	ctrlStatePub.publish(msg);
+
+	// because rostopic echoing all the time is a pain
+	System.out.println("STATE: " + state.getName());
     }
     
     public void handle(WaypointMsg way){
