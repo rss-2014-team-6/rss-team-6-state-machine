@@ -71,7 +71,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
     private final double HOME_Y = 0.0;
     private final double HOME_THETA = 0.0;
     
-    private long startTime;
+    private long realStartTime;
     private long lastUpdateTime = 0;
     private final long ONE_TIMEOUT_TO_RULE_THEM_ALL = 30000;
     private long lastBump = 0;
@@ -100,7 +100,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		if(msg.getLeft() || msg.getRight()) {
 		    System.out.println("5 second delay start.");
 		    initialized = true;
-		    startTime = System.currentTimeMillis();
+		    realStartTime = System.currentTimeMillis();
 		}
 		if(getTime() >= 5000) { // wait 5 seconds
                     InitializedMsg imsg = initPub.newMessage();
@@ -276,6 +276,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		public void handle(PositionMsg msg){
 		if(lastTime == -1)
 		    lastTime = getTime();
+		if(startTime == -1)
+		    startTime = getTime();
 		if(getTime() - lastTime > MISS_TIMEOUT){
 		    color = -1;
 		    lastTime = -1;
@@ -283,7 +285,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    state = lastState;
 		    lastState = this;
 		}
-		if(getTime() - lastTime > MAIN_TIMEOUT){
+		if(getTime() - startTime > MAIN_TIMEOUT){
 		    color = -1;
 		    lastTime = -1;
 		    startTime = -1;
@@ -655,7 +657,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
      */
     public long getTime(){
 	if (initialized)
-	    return System.currentTimeMillis() - startTime;
+	    return System.currentTimeMillis() - realStartTime;
 	else
 	    return 0;
     }
@@ -797,8 +799,6 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	public void onStart(final ConnectedNode node) {
     	System.out.println("Hi, I'm a state machine!");
     	
-	startTime = System.currentTimeMillis();
-    
     	//posPub = node.newPublisher("im/alsofake","rss_msgs/PositionMsg");
     	
     	posTargMsgPub = node.newPublisher("/state/PositionTarget", "rss_msgs/PositionTargetMsg");
