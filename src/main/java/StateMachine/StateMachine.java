@@ -258,14 +258,8 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		       (msg.getColor() == 1 && color == 0)){
 			// TODO: pull gains out as constants
 			VelocityMsg vmsg = velPub.newMessage();
-			double spd = Math.max((msg.getRange()-.28)*7, 2);
-			vmsg.setTranslationVelocity(spd);
-                        if (Math.abs(msg.getBearing()) > 0.1) {
-                            vmsg.setRotationVelocity(msg.getBearing() * .2);
-                        }
-                        else {
-                            vmsg.setRotationVelocity(0);
-                        }
+			vmsg.setTranslationVelocity(2.0);
+			vmsg.setRotationVelocity(msg.getBearing()*5.0);
 			velPub.publish(vmsg);
 			lastTime = getTime();
 		    }
@@ -275,7 +269,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    //lastState = this;
 		    state = driveForward;
 			color = -1;
-		    }
+		}
 	    }
 
 	    @Override
@@ -289,7 +283,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    state = lastState;
 		    lastState = this;
 		}
-		if(getTime() - startTime > MAIN_TIMEOUT){
+		if(getTime() - lastTime > MAIN_TIMEOUT){
 		    color = -1;
 		    lastTime = -1;
 		    startTime = -1;
@@ -378,6 +372,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		if(msg.getRange() > 0){
 		    state = visualServo;
 		    lastState = this;
+		    //publishWander();
 		    state.handle(msg);
 		}
 	    }
