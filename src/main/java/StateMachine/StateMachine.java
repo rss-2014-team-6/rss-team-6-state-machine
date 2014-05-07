@@ -705,7 +705,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
    
     ////////////////////////////////////////////////////////////////////////////////handlers
 
-    private synchronized void handle(MapMsg msg) {
+    private void handle(MapMsg msg) {
         try {
             byte[] ba = msg.getSerializedMap().array();
             ByteArrayInputStream byteStream = new ByteArrayInputStream(ba);
@@ -730,7 +730,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
         }
     }
     
-    public synchronized void handle(PositionMsg odo){
+    public void handle(PositionMsg odo){
         System.out.println("time: " + (getTime()/60000)%60 + ":" + (getTime()/1000)%60);
         if(myX != odo.getX() || myY != odo.getY() || myTheta != odo.getTheta())
 	    lastUpdateTime = getTime();
@@ -753,30 +753,30 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 	System.out.println("STATE: " + state.getName());
     }
     
-    public synchronized void handle(WaypointMsg way){
+    public void handle(WaypointMsg way){
         //IMPLEMENT_STATES
 	if(getTime() < END_TIME)
 	    state.handle(way);
         
     }
     
-    public synchronized void handle(BumpMsg bump){
+    public void handle(BumpMsg bump){
         //IMPLEMENT_STATES
 	if(getTime() < END_TIME)
 	    state.handle(bump);
        
     }
-    public synchronized void handle(BreakBeamMsg bbeam){
+    public void handle(BreakBeamMsg bbeam){
 	//IMPLEMENT_STATES
 	if(getTime() < END_TIME)
 	    state.handle(bbeam);
     }
-    public synchronized void handle(SonarMsg sonar){
+    public void handle(SonarMsg sonar){
         //IMPLEMENT_STATES
 	if(getTime() < END_TIME)
 	    state.handle(sonar);
     }
-    public synchronized void handle(BallLocationMsg ball){
+    public void handle(BallLocationMsg ball){
         if(getTime() < END_TIME)
 	    state.handle(ball);
     }
