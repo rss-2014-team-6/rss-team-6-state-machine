@@ -258,7 +258,12 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 			VelocityMsg vmsg = velPub.newMessage();
 			double spd = Math.max((msg.getRange()-30)*10, 2);
 			vmsg.setTranslationVelocity(spd);
-			vmsg.setRotationVelocity(msg.getBearing() * 2);
+                        if (Math.abs(msg.getBearing()) > 0.1) {
+                            vmsg.setRotationVelocity(msg.getBearing() * 2);
+                        }
+                        else {
+                            vmsg.setRotationVelocity(0);
+                        }
 			velPub.publish(vmsg);
 			lastTime = getTime();
 		    }
