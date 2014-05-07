@@ -173,11 +173,13 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		if (!localized(msg)){
 		    state = lost;
 		    lastState = this;
+		    spins_start = -1;
 		    return;
 		}
 		if (timeToGoHome()){
 		    state = driveBuildSite;
 		    lastState = this;
+		    spins_start = -1;
 		    PositionTargetMsg targmsg = posTargMsgPub.newMessage();
 		    targmsg.setX(HOME_X);
 		    targmsg.setY(HOME_Y);
@@ -215,7 +217,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		if(msg.getRange() > 0){
 		    state = visualServo;
 		    lastState = this;
-		    //spins_start = -1;
+		    spins_start = -1;
 		    state.handle(msg);
 		}
 	    }
@@ -376,7 +378,6 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		if(msg.getRange() > 0){
 		    state = visualServo;
 		    lastState = this;
-		    publishWander();
 		    state.handle(msg);
 		}
 	    }
