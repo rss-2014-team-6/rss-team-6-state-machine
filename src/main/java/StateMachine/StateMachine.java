@@ -256,10 +256,10 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		       (msg.getColor() == 1 && color == 0)){
 			// TODO: pull gains out as constants
 			VelocityMsg vmsg = velPub.newMessage();
-			double spd = Math.max((msg.getRange()-30)*10, 2);
+			double spd = Math.max((msg.getRange()-.28)*7, 2);
 			vmsg.setTranslationVelocity(spd);
                         if (Math.abs(msg.getBearing()) > 0.1) {
-                            vmsg.setRotationVelocity(msg.getBearing() * 2);
+                            vmsg.setRotationVelocity(msg.getBearing() * .2);
                         }
                         else {
                             vmsg.setRotationVelocity(0);
@@ -269,7 +269,7 @@ public class StateMachine extends AbstractNodeMain implements Runnable {
 		    }
 		}
 		//TODO: pull these out as constants
-		if(msg.getRange() < .4 && Math.abs(msg.getBearing()) < .2){
+		if(msg.getRange() < .28 && Math.abs(msg.getBearing()) < .2){
 		    //lastState = this;
 		    state = driveForward;
 			color = -1;
